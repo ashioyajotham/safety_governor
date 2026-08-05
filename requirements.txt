@@ -1,0 +1,8 @@
+numpy>=1.26,<3
+PyYAML>=6,<7
+torch>=2.2
+transformer-lens>=2.3
+datasets>=2.19
+pandas>=2.2
+pytest>=8,<9
+wandb>=0.17

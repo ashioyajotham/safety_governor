@@ -1,0 +1,17 @@
+model:
+  name: gpt2-small
+  revision: main
+dataset:
+  path: datasets/fixtures/contrastive_en.jsonl
+  language: en
+seed: 42
+extraction:
+  methods: [difference_in_means, pca, probe]
+  token_mode: last_prompt_token
+  bootstrap_samples: 100
+intervention:
+  layers: [0, 4, 8]
+  coefficients: [1, 2, 5, 10, 20]
+  token_modes: [last_prompt_token, all_tokens]
+tracking:
+  wandb: false

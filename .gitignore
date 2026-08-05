@@ -1,0 +1,11 @@
+__pycache__/
+.pytest_cache/
+.venv/
+artifacts/
+data/raw/
+data/cache/
+*.pt
+*.safetensors
+.env
+wandb/
+datasets/curation/rejected/

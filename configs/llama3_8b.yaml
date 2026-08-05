@@ -1,0 +1,17 @@
+model:
+  name: meta-llama/Meta-Llama-3-8B-Instruct
+  revision: main
+dataset:
+  path: datasets/manifest.json
+  language: en
+seed: 42
+extraction:
+  methods: [difference_in_means, pca, probe]
+  token_mode: last_prompt_token
+  bootstrap_samples: 100
+intervention:
+  layer_stride: 4
+  coefficients: [1, 2, 5, 10, 20]
+  token_modes: [last_prompt_token, all_tokens]
+tracking:
+  wandb: false
