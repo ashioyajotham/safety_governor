@@ -23,8 +23,8 @@ The predeclared viability target is targeted suppression above 70% with an MMLU 
 
 - Phase 1 operational smoke run is complete: GPT-2 Small loaded with TransformerLens on CPU; layer-0 residual activations, a reproducible manifest, and a difference-in-means vector were produced from the fixture data.
 - The smoke artifact verifies the pipeline only. It is not evidence for a safety claim because the fixture has one contrastive pair.
-- The English curation corpus contains 300 approved contrastive pairs (600 records): 100 deceptive-reasoning, 100 instruction-noncompliance, and 100 harmful-compliance pairs.
-- The next research gate is a reviewed English-to-Swahili translation subset, followed by cross-lingual representation-similarity mapping.
+- The original 300-pair English corpus is retained as a pilot and is not valid for RQ1–RQ3 claims: its arithmetic and template subsets lack required domain diversity. See docs/data_quality_remediation.md.
+- The next research gate is a diverse, source-backed English corpus; Swahili translation begins only after that corpus passes the diversity and review gates.
 
 ## Data and research controls
 
