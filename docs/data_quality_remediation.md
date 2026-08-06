@@ -32,3 +32,7 @@ Keep the 100 JailbreakBench harmful-compliance pairs restricted. Record an expli
 - Upgrade or isolate the dataset-loading environment so TruthfulQA can be ingested reproducibly; the currently installed `datasets` package fails on that dataset’s feature schema.
 - Add source importers and a corpus-audit command before adding any new approval labels.
 - Do not report cross-lingual results until the replacement manifest is filled and reviewed.
+
+## Freeze rule for surplus annotations
+
+Keep all reviewed candidate annotations through quality review. The constraint-omission pool currently exceeds the 30-pair target; do not discard it during annotation. At freeze time, `python -m scripts.freeze_instruction_corpus <annotation-files> --output <frozen-file> --seed 42` requires approved, non-empty, unique records and selects exactly 30 pairs per archetype using a deterministic hash of the pair ID. Surplus approved records remain a held-out audit/evaluation reserve and must not be mixed back into vector fitting without a documented split decision.
