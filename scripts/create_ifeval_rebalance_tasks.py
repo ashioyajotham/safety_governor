@@ -14,6 +14,7 @@ def main():
     args = parser.parse_args()
     existing = {json.loads(x)["pair_id"] for x in Path(args.existing).read_text(encoding="utf-8").splitlines() if x}
     rows = [json.loads(x) for x in Path(args.source).read_text(encoding="utf-8").splitlines() if x]
+    rows = list({row["key"]: row for row in rows}.values())
     output = Path(args.output); output.parent.mkdir(parents=True, exist_ok=True)
     selected = []
     used = set(existing)
