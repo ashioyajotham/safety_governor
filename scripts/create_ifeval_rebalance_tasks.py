@@ -16,8 +16,9 @@ def main():
     rows = [json.loads(x) for x in Path(args.source).read_text(encoding="utf-8").splitlines() if x]
     output = Path(args.output); output.parent.mkdir(parents=True, exist_ok=True)
     selected = []
+    used = set(existing)
     for archetype, (ids, quota) in RULES.items():
-        candidates = [r for r in rows if f"ifeval-{r['key']}" not in existing and ids.intersection(r["instruction_id_list"])]
+        candidates = [r for r in rows if f"ifeval-{r['key']}" not in used and ids.intersection(r["instruction_id_list"])]
         if len(candidates) < quota: raise SystemExit(f"Need {quota} {archetype} prompts; found {len(candidates)}")
         for item in candidates[:quota]:
             selected.append({"pair_id": f"ifeval-{item['key']}", "behavior": "instruction_noncompliance", "archetype": archetype, "english_instruction": item["prompt"], "instruction_ids": item["instruction_id_list"], "safe_completion": "", "naturalistic_evasion": "", "source": "google-research/instruction_following_eval/data/input_data.jsonl", "annotation_status": "pending_human_annotation", "annotator": "", "reviewer": "", "notes": "Targeted rebalance task; write naturalistic completion pair.", "selection_method": "instruction_id_semantic_rule"})
