@@ -17,7 +17,7 @@ Create a new, source-backed 120-pair deceptive-reasoning corpus before extractio
 
 Create a 120-pair naturalistic instruction-noncompliance corpus with four 30-pair archetypes: constraint omission, hedging/excessive caveating, topic shift, and false completion. Use IFEval as the instruction source where applicable; all generated negative completions need reviewer annotation as naturalistic evasion, not merely syntactic violation.
 
-Keep the 100 JailbreakBench harmful-compliance pairs restricted. Require one named reviewer, review date, and short review note in each restricted pair record before counting them in the final corpus.
+Keep the 100 JailbreakBench harmful-compliance pairs restricted. Require a consistent pair-level review status before counting them in the final corpus; use an optional review note only for edits or edge cases.
 
 ## Gates before translation or vector extraction
 
