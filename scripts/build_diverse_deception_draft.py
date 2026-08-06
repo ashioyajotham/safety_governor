@@ -18,14 +18,14 @@ def dialogue(messages):
 
 def main():
     parser = argparse.ArgumentParser(); parser.add_argument("--output", default="data/raw/research_corpus/deceptive_diverse_draft.jsonl")
-    parser.add_argument("--sources", default="C:/tmp/safety-governor-sources"); args = parser.parse_args()
+    parser.add_argument("--sources", default="data/raw/sources"); args = parser.parse_args()
     root = Path(args.sources); output = Path(args.output); output.parent.mkdir(parents=True, exist_ok=True)
     arithmetic = [json.loads(x) for x in Path("datasets/pilot/deceptive_reasoning_arithmetic_pilot.jsonl").read_text(encoding="utf-8").splitlines() if x]
     pairs = {r["pair_id"]: [] for r in arithmetic}
     for r in arithmetic: pairs[r["pair_id"]].append(r)
-    truthful = list(csv.DictReader((root / "truthfulqa/TruthfulQA.csv").open(encoding="utf-8")))
-    answer = [json.loads(x) for x in (root / "sycophancy-eval/datasets/answer.jsonl").read_text(encoding="utf-8").splitlines() if x]
-    feedback = [json.loads(x) for x in (root / "sycophancy-eval/datasets/feedback.jsonl").read_text(encoding="utf-8").splitlines() if x]
+    truthful = list(csv.DictReader((root / "truthfulqa.csv").open(encoding="utf-8")))
+    answer = [json.loads(x) for x in (root / "sycophancy_answer.jsonl").read_text(encoding="utf-8").splitlines() if x]
+    feedback = [json.loads(x) for x in (root / "sycophancy_feedback.jsonl").read_text(encoding="utf-8").splitlines() if x]
     with output.open("x", encoding="utf-8") as h:
         for i, records in enumerate(list(pairs.values())[:30], 1):
             safe = next(r["prompt"] for r in records if r["polarity"] == "safe"); unsafe = next(r["prompt"] for r in records if r["polarity"] == "unsafe")
