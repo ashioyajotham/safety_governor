@@ -1,13 +1,20 @@
 import numpy as np
+import pytest
 from safety_governor.evaluation import ControlTax, conceptual_hub, cosine_similarity, suppression
 from safety_governor.steering import add_vector
 
 
-def test_last_token_steering_does_not_touch_prior_tokens():
-    activation = np.zeros((1, 2, 2))
-    changed = add_vector(activation, np.array([1., 2.]), 3, "last_prompt_token")
+def test_position_aware_steering_does_not_touch_padding_or_prior_tokens():
+    activation = np.zeros((1, 3, 2))
+    changed = add_vector(activation, np.array([1., 2.]), 3, "final_response_token", positions=[1])
     assert np.all(changed[0, 0] == 0)
     assert np.all(changed[0, 1] == np.array([3., 6.]))
+    assert np.all(changed[0, 2] == 0)
+
+
+def test_position_aware_mode_refuses_implicit_last_column():
+    with pytest.raises(ValueError, match="explicit non-padding positions"):
+        add_vector(np.zeros((1, 2, 2)), np.ones(2), 1, "final_response_token")
 
 
 def test_control_tax_threshold_and_hub():

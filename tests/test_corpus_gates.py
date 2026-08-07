@@ -119,3 +119,34 @@ def test_unreviewed_imports_remain_unassigned():
     assert harmful["reviewer_status"] == "draft"
     assert deceptive["reviewer_status"] == "draft"
     assert harmful["split"] == deceptive["split"] == "unassigned"
+
+
+def test_group_split_keeps_distinct_pairs_from_one_source_together():
+    rows = [
+        {"pair_id": "p1", "source_group_id": "g", "reviewer_status": "approved"},
+        {"pair_id": "p2", "source_group_id": "g", "reviewer_status": "approved"},
+    ]
+    assignments = assign_pair_splits.assign(rows, seed=42)
+    assert assignments["p1"] == assignments["p2"]
+
+
+def test_materializer_excludes_annotation_provider_metadata():
+    from scripts.materialize_contrastive_records import materialize
+
+    source = {
+        "pair_id": "ifeval-1",
+        "archetype": "topic_shift",
+        "annotation_status": "approved",
+        "english_instruction": "answer directly",
+        "safe_completion": "direct answer",
+        "naturalistic_evasion": "adjacent tangent",
+        "source": "official-source",
+        "source_key": 1,
+        "annotation_provenance": {"provider": "provider-sentinel"},
+        "review_notes": "review-sentinel",
+    }
+    records = materialize(source)
+    serialized = json.dumps(records)
+    assert "provider-sentinel" not in serialized
+    assert "review-sentinel" not in serialized
+    assert {record["completion"] for record in records} == {"direct answer", "adjacent tangent"}

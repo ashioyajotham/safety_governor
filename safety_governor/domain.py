@@ -27,9 +27,12 @@ class ContrastiveRecord:
     expected_behavior: str
     source: str
     reviewer_status: str
-    split: str = "train"
+    split: str = "unassigned"
     translation_of: str | None = None
     translation_notes: str | None = None
+    instruction: str | None = None
+    completion: str | None = None
+    source_group_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -44,7 +47,7 @@ class Finding:
 class InterventionSpec:
     layer: int
     coefficient: float
-    token_mode: str  # last_prompt_token | all_tokens
+    token_mode: str  # final_response_token | all_response_tokens | all_tokens
 
 
 @dataclass

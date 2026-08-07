@@ -1,13 +1,19 @@
 # Repository and data lifecycle
 
-The repository separates source material, mutable research work, immutable local lineage, and releasable artifacts.
-
 | Location | Purpose | Git policy |
 | --- | --- | --- |
-| `data/raw/sources/` | Immutable upstream benchmark snapshots | Ignored by default; only explicitly pinned files are tracked |
-| `data/working/` | Current candidate corpora, review queues, and restricted working data | Ignored |
-| `data/archive/` | Superseded candidates, raw annotation runs, failures, and invalidated pilots | Ignored; hashes and dispositions are tracked in `datasets/manifests/archive_index.json` |
-| `datasets/` | Sanitized fixtures, templates, source metadata, and future frozen releases | Tracked subject to source licence and governance |
-| `artifacts/` | Activation captures, vectors, and experiment manifests | Ignored |
+| `instruction_following_eval/` | Pinned official IFEval checker and licence | Tracked; upstream hashes in NOTICE |
+| `data/raw/sources/` | Immutable upstream snapshots | Ignored by default |
+| `data/working/` | Candidates, review queues, reports, and quarantine | Ignored |
+| `data/archive/` | Superseded candidates and annotation runs | Ignored; hashes tracked |
+| `datasets/fixtures/` | Non-research smoke data | Tracked |
+| `datasets/manifests/` | Source, archive, and freeze lineage | Tracked |
+| `datasets/pilot/` | Invalidated pilot data retained for auditability | Tracked where licensing permits |
+| `datasets/frozen/` | Future approved experiment inputs | Governance/licence dependent |
+| `artifacts/` | Captures, vectors, and run manifests | Ignored |
 
-Canonical working filenames describe research state rather than tools or chronology: use `candidates.jsonl`, `review_queue.jsonl`, and `run_manifest.json`, not provider names or suffixes such as `v2`. Provider and model identifiers belong in provenance metadata. Approval, pair splitting, freezing, translation, and vector fitting are separate explicit gates.
+Working filenames describe state rather than tools or chronology. Provider/model identifiers belong in annotation provenance, never in experiment inputs.
+
+The materialization boundary copies only research identifiers, instruction, completion, polarity, source group, split, provenance citation, and approval state. Review notes and generation traces remain outside the transcript.
+
+Harmful compliance is quarantined from Stage 1. Its legacy file is recoverable locally as `data/working/harmful_compliance/quarantined_legacy_candidates.jsonl`.

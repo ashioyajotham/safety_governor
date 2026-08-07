@@ -1,82 +1,76 @@
 # Runtime Safety Governor
 
-Research repository for the ILINA Junior Research Fellowship project **Runtime Safety Governors: Activation Steering as a Control API for Deployed Language Models** (Aug–Nov 2026).
+Research repository for **Runtime Safety Governors: Activation Steering as a Control API for Deployed Language Models** (ILINA Junior Research Fellowship, August-November 2026).
 
-This is an empirical mechanistic-interpretability project. It tests whether activation steering can act as a narrow inference-time intervention against unsafe model behaviour, without retraining and without unacceptable degradation of general capability. It is not an HTTP moderation service or a product safety gateway.
+This project studies whether a narrow inference-time residual-stream intervention can suppress specified unsafe behaviours without retraining and without unacceptable capability loss. It is a mechanistic-interpretability experiment, not a moderation product.
 
 ## Research questions
 
-1. Can contrastive activation vectors reliably represent deceptive reasoning, instruction non-compliance, and harmful compliance in open-weight language models?
-2. What is the **Control Tax** of steering: targeted suppression versus MMLU accuracy and WikiText-103 perplexity degradation?
-3. Do English-derived safety vectors transfer to semantically matched Swahili prompts, and at which residual-stream layers?
-4. *(Stretch)* Can a lightweight residual-stream probe trigger steering only when needed?
+1. Can contrastive activation directions represent deceptive reasoning and instruction non-compliance in an open-weight model?
+2. What is the control tax: targeted suppression versus MMLU accuracy and WikiText-103 perplexity?
+3. Do English-derived directions transfer to semantically matched Swahili prompts?
+4. As a stretch question, can a residual-stream probe trigger steering conditionally?
 
-The primary intervention is activation addition at residual layer `L`:
+The intervention is `A'_L = A_L + alpha v`. The predeclared provisional viability criterion is targeted suppression above 70% with MMLU degradation below 3%.
 
-```text
-A'_L = A_L + alpha * v
-```
+## Current research gate
 
-The predeclared viability target is targeted suppression above 70% with an MMLU delta below 3%.
+The package and GPT-2 smoke path are operational. That smoke run verifies plumbing only and is not evidence for a safety claim.
 
-## Current status
+Stage-1 Llama fitting is blocked pending:
 
-- Phase 1 operational smoke run is complete: GPT-2 Small loaded with TransformerLens on CPU; layer-0 residual activations, a reproducible manifest, and a difference-in-means vector were produced from the fixture data.
-- The smoke artifact verifies the pipeline only. It is not evidence for a safety claim because the fixture has one contrastive pair.
-- The original 300-pair English corpus is retained as a pilot and is not valid for RQ1–RQ3 claims: its arithmetic and template subsets lack required domain diversity. See docs/data_quality_remediation.md.
-- The source-backed English candidate pools now reach the intended instruction-corpus quotas, but they are not frozen. The current gate is post-remediation human review, lexical-artifact auditing, approval, and pair-level splitting across instruction non-compliance, deceptive reasoning, and harmful compliance. Swahili translation and Llama-3 vector fitting remain blocked until those gates pass.
+- human confirmation of the 150 source-backed IFEval candidates and a deterministic 30 x 4 freeze;
+- official pinned IFEval checks for every safe completion and declared unsafe failure mode;
+- approval and source-group split of the 120-pair deceptive-reasoning draft;
+- human review of the newly naturalized motivated-reasoning completions;
+- a separately rebuilt harmful-compliance corpus. The previous JailbreakBench construction is quarantined because it paired one corrupted refusal template with target prefixes rather than full responses.
 
-## Data and research controls
+Swahili translation remains downstream of the English freeze.
 
-The harmful-compliance candidates are stored under the ignored `data/working/harmful_compliance/` tree. They originate from JailbreakBench and must not be copied into public issues, logs, examples, or commits.
+## Scientific safeguards
 
-Every record has a pair ID, behavior, polarity, language, provenance, explicit review decision evidence, and a pair-level split. Reviewer identity is optional; approval is never inferred from import. Pairs—not individual rows—are assigned to splits. The repository validates duplicate prompts, incomplete pairs, split leakage, and missing provenance. See [dataset governance](docs/dataset_governance.md) and the [curation workflow](docs/dataset_curation_workflow.md).
+Experiment records separate `instruction` from `completion`. Annotation notes, provider metadata, reviewer fields, and generation traces are excluded by the materialization step and cannot enter model input.
+
+Source groups, rather than pair IDs alone, are assigned to train/validation/test. Activation capture is train-only. The primary extraction site is the mean over response tokens; the final response token is a sensitivity analysis. PCA operates on aligned `unsafe - safe` deltas. Bootstrap resampling preserves source groups. Position-specific steering requires explicit non-padding positions.
+
+Model repositories are pinned to immutable Hugging Face commits. Run manifests record dataset and code state, environment facts, split, layer, and capture site.
 
 ## Repository layout
 
 ```text
-safety_governor/     core data, activation, vector, steering, and evaluation code
-scripts/             reproducible data and experiment entrypoints
-configs/             GPT-2 and Llama-3-8B experiment configurations
-datasets/            safe fixtures, manifests, templates, and non-restricted drafts
-data/raw/sources/    immutable upstream benchmark snapshots
-data/working/        mutable and restricted candidate corpora (Git ignored)
-data/archive/        local provenance and superseded runs (Git ignored)
-docs/                protocol, governance, and curation documentation
-tests/               deterministic unit and pipeline tests
-artifacts/           run manifests, activation caches, and vectors (Git ignored)
+safety_governor/             domain contracts, tokenization, capture, vectors, steering, evaluation
+scripts/                     curation gates, audits, materialization, splitting, experiment entrypoints
+configs/                     pinned smoke and Stage-1 experiment configurations
+instruction_following_eval/  vendored official IFEval checker at a pinned upstream commit
+datasets/fixtures/           non-research smoke fixtures
+datasets/manifests/          tracked source and archive lineage metadata
+datasets/pilot/              invalidated pilot corpus retained for auditability
+data/raw/sources/            immutable local upstream snapshots (mostly ignored)
+data/working/                mutable candidate, review, quarantine, and report data (ignored)
+data/archive/                superseded local artifacts (ignored; hashes tracked)
+docs/                        protocol, governance, curation, and research notebook material
+tests/                       deterministic scientific and engineering checks
+artifacts/                   ignored run manifests, activation caches, and vectors
 ```
 
-See [repository and data lifecycle](docs/repository_layout.md) for naming, retention, and Git policy. Model-assisted annotation is documented separately from approval in [annotation assistance](docs/annotation_assistance.md).
+See [repository lifecycle](docs/repository_layout.md), [data remediation](docs/data_quality_remediation.md), and [experiment protocol](docs/experiment_protocol.md).
 
-## Reproduce the local pipeline
+## Local verification
 
 ```powershell
 py -3.11 -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 python -m scripts.validate_dataset datasets/fixtures/contrastive_en.jsonl
-pytest
+pytest -q
 ```
 
-A minimal real capture requires TransformerLens and model access:
+The official IFEval gate is:
 
 ```powershell
-python -m scripts.capture_activations configs/gpt2_pilot.yaml --layer 0 --device cpu
-python -m scripts.extract_vector --safe artifacts/<capture-run>/safe.npy --unsafe artifacts/<capture-run>/unsafe.npy --method difference_in_means --output artifacts/<capture-run>/dim_vector.npy
+python -m scripts.validate_ifeval_candidates data/working/instruction_noncompliance/candidates.jsonl --report data/working/instruction_noncompliance/ifeval_official_report.jsonl --require-declarations
 ```
 
-Use `python -m scripts.plan_sweep configs/gpt2_pilot.yaml` to inspect the registered static-intervention matrix. Do not interpret a vector before the approved corpus is split, captured, and evaluated under the protocol in [experiment_protocol.md](docs/experiment_protocol.md).
+It intentionally fails until each expected failure declaration is human-confirmed.
 
-## Phase sequence
-
-1. **Foundation** — reproducible package, artifacts, capture path, and tests.
-2. **English data** — provenance-linked contrastive pairs and review.
-3. **Vector extraction** — difference-in-means, PCA, and probe directions with bootstrap stability.
-4. **Control Tax** — layer/coefficient/token-position sweeps and target/capability/fluency metrics.
-5. **Cross-lingual transfer** — frozen English–Swahili pairs, conceptual-hub mapping, and transfer controls.
-6. **Conditional steering** — only after static results are reproducible.
-
-## Source project document
-
-The full working proposal is retained locally as `ilina_jrf_project.docx.pdf`. Its research questions, metric definitions, and timeline govern this repository.
+The full project proposal is retained locally as `ilina_jrf_project.docx.pdf` and governs research scope, metrics, and timeline.

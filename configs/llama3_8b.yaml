@@ -1,17 +1,19 @@
 model:
   name: meta-llama/Meta-Llama-3-8B-Instruct
-  revision: main
+  revision: 8afb486c1db24fe5011ec46dfbe5b5dccdb575c2
 dataset:
-  path: datasets/manifest.json
+  path: datasets/frozen/english_contrastive.jsonl
   language: en
+  required_split: train
 seed: 42
 extraction:
-  methods: [difference_in_means, pca, probe]
-  token_mode: last_prompt_token
+  methods: [difference_in_means, paired_delta_pca, probe]
+  capture_site: response_mean
+  sensitivity_sites: [final_response_token]
   bootstrap_samples: 100
 intervention:
   layer_stride: 4
   coefficients: [1, 2, 5, 10, 20]
-  token_modes: [last_prompt_token, all_tokens]
+  token_modes: [final_response_token, all_response_tokens]
 tracking:
   wandb: false

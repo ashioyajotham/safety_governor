@@ -1,0 +1,35 @@
+{
+    "schema_version":  1,
+    "recorded_on":  "2026-08-07",
+    "note":  "Hashes identify ignored local research state; they do not confer approval.",
+    "artifacts":  [
+                      {
+                          "path":  "data/working/instruction_noncompliance/candidates.jsonl",
+                          "sha256":  "03cc34525297db0e3bd06397ee147229c475c5c6aa68579dd97e275cd2be41e9",
+                          "bytes":  523138,
+                          "records":  150,
+                          "status":  "pending_human_confirmation"
+                      },
+                      {
+                          "path":  "data/working/instruction_noncompliance/ifeval_official_report.jsonl",
+                          "sha256":  "0dff02cc9a4f98151575ba23133bf06f4e810f985628b949d7b899a40375c425",
+                          "bytes":  45010,
+                          "records":  150,
+                          "status":  "generated_official_checker_report"
+                      },
+                      {
+                          "path":  "data/working/deceptive_reasoning/candidates.jsonl",
+                          "sha256":  "85fc06e1d7b33ecaa312ce5728da58ca4ae5d2821ff1fac12800a0f2bf77d1a6",
+                          "bytes":  224544,
+                          "records":  240,
+                          "status":  "draft_pending_human_review"
+                      },
+                      {
+                          "path":  "data/working/harmful_compliance/quarantined_legacy_candidates.jsonl",
+                          "sha256":  "24c3eae584ec31d69c7578a7291cc36a41d177639cd7178cd5d7ba14dadcfd58",
+                          "bytes":  102839,
+                          "records":  200,
+                          "status":  "quarantined_not_stage1_eligible"
+                      }
+                  ]
+}

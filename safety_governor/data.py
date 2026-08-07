@@ -11,27 +11,27 @@ from .domain import Behavior, ContrastiveRecord, Polarity
 
 REQUIRED_REVIEW = "approved"
 VALID_SPLITS = {"train", "validation", "test"}
+ALL_SPLITS = VALID_SPLITS | {"unassigned"}
 
 
 def _record(raw: dict) -> ContrastiveRecord:
     return ContrastiveRecord(
         pair_id=raw["pair_id"], behavior=Behavior(raw["behavior"]),
         polarity=Polarity(raw["polarity"]), language=raw["language"].lower(),
-        prompt=raw["prompt"], expected_behavior=raw["expected_behavior"],
+        prompt=raw.get("prompt", ""), expected_behavior=raw["expected_behavior"],
         source=raw["source"], reviewer_status=raw["reviewer_status"],
-        split=raw.get("split", "train"), translation_of=raw.get("translation_of"),
-        translation_notes=raw.get("translation_notes"),
+        split=raw.get("split", "unassigned"), translation_of=raw.get("translation_of"),
+        translation_notes=raw.get("translation_notes"), instruction=raw.get("instruction"),
+        completion=raw.get("completion"), source_group_id=raw.get("source_group_id"),
     )
 
 
 def load_jsonl(path: str | Path) -> list[ContrastiveRecord]:
-    """Load records; raw datasets must stay outside source control."""
     with Path(path).open(encoding="utf-8") as handle:
         return [_record(json.loads(line)) for line in handle if line.strip()]
 
 
 def validate_records(records: Iterable[ContrastiveRecord], require_approved: bool = True) -> list[str]:
-    """Return all validation errors instead of failing on only the first one."""
     records = list(records)
     errors: list[str] = []
     seen: set[tuple[str, Polarity, str]] = set()
@@ -43,26 +43,36 @@ def validate_records(records: Iterable[ContrastiveRecord], require_approved: boo
             errors.append(f"duplicate pair/polarity/language: {key}")
         seen.add(key)
         by_pair[record.pair_id].append(record)
-        if not record.prompt.strip():
+        if not record.prompt.strip() and not (record.instruction and record.completion):
             errors.append(f"empty prompt: {record.pair_id}")
         if not record.source.strip():
             errors.append(f"missing provenance: {record.pair_id}")
-        if record.split not in VALID_SPLITS:
+        valid_splits = VALID_SPLITS if require_approved else ALL_SPLITS
+        if record.split not in valid_splits:
             errors.append(f"invalid split: {record.pair_id}")
         if require_approved and record.reviewer_status != REQUIRED_REVIEW:
             errors.append(f"unreviewed record: {record.pair_id}")
         if record.language == "sw" and not record.translation_of:
             errors.append(f"Swahili record missing translation_of: {record.pair_id}")
-        prompt_key = (record.language, record.prompt.strip())
+        prompt_text = record.prompt or record.instruction or ""
+        prompt_key = (record.language, prompt_text.strip(), record.polarity.value)
         if prompt_key in prompts:
             errors.append(f"duplicate prompt: {record.pair_id}")
         prompts.add(prompt_key)
     for pair_id, group in by_pair.items():
-        polarities = {item.polarity for item in group}
-        if polarities != {Polarity.SAFE, Polarity.UNSAFE}:
+        if {item.polarity for item in group} != {Polarity.SAFE, Polarity.UNSAFE}:
             errors.append(f"incomplete contrastive pair: {pair_id}")
         if len({item.split for item in group}) != 1:
             errors.append(f"split leakage in pair: {pair_id}")
+        if len({item.source_group_id for item in group}) != 1:
+            errors.append(f"source-group mismatch in pair: {pair_id}")
+    group_splits: dict[str, set[str]] = defaultdict(set)
+    for record in records:
+        if record.source_group_id:
+            group_splits[record.source_group_id].add(record.split)
+    for group_id, splits in group_splits.items():
+        if len(splits) != 1:
+            errors.append(f"source-group split leakage: {group_id}")
     return errors
 
 

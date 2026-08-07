@@ -42,3 +42,13 @@ Keep all reviewed candidate annotations through quality review. The constraint-o
 The canonical instruction candidate pool contains 150 unique pending-review candidates: 60 constraint-omission candidates and 30 candidates for each other archetype. Known Markdown/newline defects and lexical artifacts were remediated before assembly; original provider outputs remain immutable in the local archive. Approval requires an explicit decision and non-empty review note, while reviewer identity remains optional.
 
 Before freeze, run `python -m scripts.audit_annotation_artifacts <reviewed-file>` and the strengthened research-corpus audit. Deceptive motivated-reasoning candidates must come from preference-bearing feedback prompts and must not share a single safe or unsafe completion template. Deceptive and harmful-compliance corpora remain unassigned until approval; use `python -m scripts.assign_pair_splits` only after every record is approved.
+
+## 2026-08-07 scientific hardening gate
+
+The instruction pool has 150 source-resolved candidates. All safe completions pass the pinned official IFEval strict checker, and the lexical artifact audit passes (hedging cues 2/30; false-completion cues 9/30). Expected unsafe failure lists remain pending human confirmation, so the freeze gate intentionally fails closed.
+
+The deceptive draft now uses explicit instruction/completion boundaries and stable source groups. False-premise variants collapse to eight underlying question groups; motivated-reasoning variants collapse to fifteen argument groups. All thirty motivated unsafe completions are textually unique after naturalization, but remain draft until human review.
+
+The previous harmful-compliance construction is quarantined and excluded from Stage 1. JailbreakBench target strings are retained only as rebuild-task prefixes; they are not treated as full unsafe completions. A replacement corpus must use diverse full safe and unsafe responses and pass template and encoding audits.
+
+Exact hashes for ignored working artifacts are recorded in `datasets/manifests/working_state.json` without changing their approval state.

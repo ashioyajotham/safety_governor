@@ -18,15 +18,22 @@ def difference_in_means(safe: np.ndarray, unsafe: np.ndarray) -> np.ndarray:
     return normalize(unsafe.mean(axis=0) - safe.mean(axis=0))
 
 
-def pca_direction(safe: np.ndarray, unsafe: np.ndarray) -> np.ndarray:
-    values = np.concatenate((safe, unsafe), axis=0)
-    labels = np.concatenate((-np.ones(len(safe)), np.ones(len(unsafe))))
-    centered = values - values.mean(axis=0, keepdims=True)
+def paired_delta_pca(safe: np.ndarray, unsafe: np.ndarray) -> np.ndarray:
+    """First PC of aligned unsafe-safe deltas, oriented toward the mean delta."""
+    if safe.shape != unsafe.shape or safe.ndim != 2:
+        raise ValueError("paired-delta PCA requires aligned [pairs, hidden] matrices")
+    deltas = unsafe - safe
+    centered = deltas - deltas.mean(axis=0, keepdims=True)
+    if np.allclose(centered, 0):
+        return normalize(deltas.mean(axis=0))
     _, _, right = np.linalg.svd(centered, full_matrices=False)
     direction = right[0]
-    if np.corrcoef(values @ direction, labels)[0, 1] < 0:
+    if np.dot(direction, deltas.mean(axis=0)) < 0:
         direction *= -1
     return normalize(direction)
+
+
+pca_direction = paired_delta_pca
 
 
 def probe_direction(safe: np.ndarray, unsafe: np.ndarray, l2: float = 1.0) -> np.ndarray:
@@ -38,16 +45,21 @@ def probe_direction(safe: np.ndarray, unsafe: np.ndarray, l2: float = 1.0) -> np
     return normalize(weights[1:])
 
 
-def bootstrap_cosine(extractor, safe: np.ndarray, unsafe: np.ndarray, samples: int = 100, seed: int = 0) -> np.ndarray:
-    """Paired bootstrap over aligned safe/unsafe contrastive examples."""
+def bootstrap_cosine(extractor, safe: np.ndarray, unsafe: np.ndarray, samples: int = 100, seed: int = 0, group_ids: list[str] | None = None) -> np.ndarray:
+    """Paired, source-group-aware bootstrap over aligned contrastive examples."""
     if len(safe) != len(unsafe):
         raise ValueError("paired bootstrap requires equal safe and unsafe row counts")
     if len(safe) == 0:
         raise ValueError("paired bootstrap requires at least one pair")
+    groups = np.asarray(group_ids) if group_ids is not None else np.asarray([str(i) for i in range(len(safe))])
+    if len(groups) != len(safe):
+        raise ValueError("group IDs must align with activation rows")
     rng = np.random.default_rng(seed)
     reference = extractor(safe, unsafe)
     scores = []
+    unique_groups = np.unique(groups)
     for _ in range(samples):
-        indices = rng.integers(0, len(safe), len(safe))
+        selected = rng.choice(unique_groups, len(unique_groups), replace=True)
+        indices = np.concatenate([np.flatnonzero(groups == group) for group in selected])
         scores.append(float(np.dot(reference, extractor(safe[indices], unsafe[indices]))))
     return np.asarray(scores)

@@ -1,17 +1,18 @@
 model:
-  name: gpt2-small
-  revision: main
+  name: openai-community/gpt2
+  revision: 607a30d783dfa663caf39e06633721c8d4cfcd7e
 dataset:
   path: datasets/fixtures/contrastive_en.jsonl
   language: en
 seed: 42
 extraction:
-  methods: [difference_in_means, pca, probe]
-  token_mode: last_prompt_token
+  methods: [difference_in_means, paired_delta_pca, probe]
+  capture_site: response_mean
+  sensitivity_sites: [final_response_token]
   bootstrap_samples: 100
 intervention:
   layers: [0, 4, 8]
   coefficients: [1, 2, 5, 10, 20]
-  token_modes: [last_prompt_token, all_tokens]
+  token_modes: [final_response_token, all_response_tokens]
 tracking:
   wandb: false

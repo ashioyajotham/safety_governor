@@ -1,8 +1,12 @@
 numpy>=1.26,<3
 PyYAML>=6,<7
 torch>=2.2
-transformer-lens>=2.3
+transformer-lens==3.1.0
+transformers==4.57.0
 datasets>=2.19
 pandas>=2.2
 pytest>=8,<9
 wandb>=0.17
+langdetect==1.0.9
+immutabledict==4.2.1
+nltk>=3.9,<4
