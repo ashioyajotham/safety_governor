@@ -1,6 +1,6 @@
 {
   "name": "runtime-safety-governor-contrastive-data",
-  "status": "metadata-only scaffold",
+  "status": "working candidate pools; no frozen research release",
   "release_policy": "Only approved, provenance-complete records may be added. Raw harmful prompts are restricted.",
   "languages": ["en", "sw"],
   "required_records": ["pair_id", "behavior", "polarity", "language", "source", "reviewer_status", "translation_of"]

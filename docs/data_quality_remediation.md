@@ -39,6 +39,6 @@ Keep all reviewed candidate annotations through quality review. The constraint-o
 
 ## Current remediation gate (2026-08-07)
 
-The instruction candidate pool is sufficient in count but has been demoted to `pending_review` after deterministic normalization and lexical-artifact remediation. Known Markdown/newline defects are corrected in a separate local artifact; original Gemini outputs remain immutable. Approval requires an explicit decision and non-empty review note, while reviewer identity remains optional.
+The canonical instruction candidate pool contains 150 unique pending-review candidates: 60 constraint-omission candidates and 30 candidates for each other archetype. Known Markdown/newline defects and lexical artifacts were remediated before assembly; original provider outputs remain immutable in the local archive. Approval requires an explicit decision and non-empty review note, while reviewer identity remains optional.
 
 Before freeze, run `python -m scripts.audit_annotation_artifacts <reviewed-file>` and the strengthened research-corpus audit. Deceptive motivated-reasoning candidates must come from preference-bearing feedback prompts and must not share a single safe or unsafe completion template. Deceptive and harmful-compliance corpora remain unassigned until approval; use `python -m scripts.assign_pair_splits` only after every record is approved.

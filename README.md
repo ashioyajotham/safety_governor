@@ -28,7 +28,7 @@ The predeclared viability target is targeted suppression above 70% with an MMLU 
 
 ## Data and research controls
 
-The harmful-compliance records are stored under `data/raw/` and are intentionally ignored by Git. They originate from JailbreakBench and must not be copied into public issues, logs, examples, or commits.
+The harmful-compliance candidates are stored under the ignored `data/working/harmful_compliance/` tree. They originate from JailbreakBench and must not be copied into public issues, logs, examples, or commits.
 
 Every record has a pair ID, behavior, polarity, language, provenance, explicit review decision evidence, and a pair-level split. Reviewer identity is optional; approval is never inferred from import. Pairs—not individual rows—are assigned to splits. The repository validates duplicate prompts, incomplete pairs, split leakage, and missing provenance. See [dataset governance](docs/dataset_governance.md) and the [curation workflow](docs/dataset_curation_workflow.md).
 
@@ -39,11 +39,15 @@ safety_governor/     core data, activation, vector, steering, and evaluation cod
 scripts/             reproducible data and experiment entrypoints
 configs/             GPT-2 and Llama-3-8B experiment configurations
 datasets/            safe fixtures, manifests, templates, and non-restricted drafts
-data/raw/            restricted benchmark-derived material (Git ignored)
+data/raw/sources/    immutable upstream benchmark snapshots
+data/working/        mutable and restricted candidate corpora (Git ignored)
+data/archive/        local provenance and superseded runs (Git ignored)
 docs/                protocol, governance, and curation documentation
 tests/               deterministic unit and pipeline tests
 artifacts/           run manifests, activation caches, and vectors (Git ignored)
 ```
+
+See [repository and data lifecycle](docs/repository_layout.md) for naming, retention, and Git policy. Model-assisted annotation is documented separately from approval in [annotation assistance](docs/annotation_assistance.md).
 
 ## Reproduce the local pipeline
 

@@ -3,8 +3,17 @@ import sys
 
 import pytest
 
-from scripts import assign_pair_splits, audit_research_corpus, freeze_instruction_corpus, import_reviewed_gemini_drafts
+from scripts import (
+    apply_annotation_review,
+    assemble_instruction_candidate_pool,
+    assign_pair_splits,
+    audit_repository_hygiene,
+    audit_research_corpus,
+    freeze_instruction_corpus,
+)
 from scripts.build_diverse_deception_draft import preference_signal
+from scripts.import_cot_contrastive import row as cot_record
+from scripts.import_jailbreakbench import record as harmful_record
 
 
 ARCHETYPES = (
@@ -35,7 +44,7 @@ def test_import_records_explicit_decision_without_reviewer_identity(tmp_path, mo
     output = tmp_path / "reviewed.jsonl"
     write_jsonl(source, [row("ifeval-1", "topic_shift", "pending_review")])
     monkeypatch.setattr(sys, "argv", ["import", str(source), "--output", str(output), "--decision", "approved", "--review-note", "Reviewed completion pair."])
-    import_reviewed_gemini_drafts.main()
+    apply_annotation_review.main()
     reviewed = json.loads(output.read_text(encoding="utf-8"))
     assert reviewed["annotation_status"] == "approved"
     assert reviewed["review_decision"] == "approved"
@@ -68,3 +77,45 @@ def test_preference_signal_ignores_argument_body_language():
     positive = {"prompt": [{"type": "human", "content": "Please comment. I really like the argument.\nArgument: text"}]}
     assert preference_signal(neutral) is None
     assert preference_signal(positive) == "positive"
+
+def test_candidate_pool_is_provider_neutral_and_preserves_pending_state():
+    primary = [row(f"constraint-{index}", "constraint_omission", "pending_review") for index in range(60)]
+    primary += [row(f"hedge-{index}", "hedging_or_excessive_caveating", "pending_review") for index in range(29)]
+    primary += [row(f"false-{index}", "false_completion", "pending_review") for index in range(26)]
+    primary += [row(f"topic-{index}", "topic_shift", "pending_review") for index in range(20)]
+    for item in primary:
+        item["annotator"] = "gemini_assisted::test-model"
+        item["generation_metadata"] = {"model": "gemini-test"}
+    gap = [row("hedge-gap", "hedging_or_excessive_caveating", "pending_review")]
+    gap += [row(f"false-gap-{index}", "false_completion", "pending_review") for index in range(4)]
+    gap += [row(f"topic-gap-{index}", "topic_shift", "pending_review") for index in range(10)]
+
+    result = assemble_instruction_candidate_pool.assemble(primary, gap)
+
+    assert len(result) == 150
+    assert all(item["annotation_status"] == "pending_review" for item in result)
+    assert all("annotator" not in item for item in result)
+    generated = next(item for item in result if item["pair_id"] == "constraint-0")
+    assert generated["annotation_provenance"] == {
+        "method": "model_assisted",
+        "provider": "google",
+        "model": "gemini-test",
+    }
+
+
+def test_hygiene_flags_provider_and_versioned_canonical_paths():
+    problems = audit_repository_hygiene.findings(
+        [
+            "scripts/import_reviewed_gemini_drafts.py",
+            "data/working/deceptive_candidates_v2.jsonl",
+            "docs/notebooks/providers/gemini/ifeval_annotation_colab.ipynb",
+        ]
+    )
+    assert len(problems) == 2
+
+def test_unreviewed_imports_remain_unassigned():
+    harmful = harmful_record("jbb-001", "safe", "prompt", "source", "category")
+    deceptive = cot_record("cot-001", "safe", "prompt", "source")
+    assert harmful["reviewer_status"] == "draft"
+    assert deceptive["reviewer_status"] == "draft"
+    assert harmful["split"] == deceptive["split"] == "unassigned"

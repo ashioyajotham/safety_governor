@@ -1,34 +1,41 @@
-"""Build the smallest review/retry queue needed to fill frozen corpus archetype gaps."""
+"""Create a provider-neutral retry/review queue from annotation failures."""
 from __future__ import annotations
-import argparse, json
+
+import argparse
+import json
 from pathlib import Path
 
-NEEDED_FROM_FAILURES = {"hedging_or_excessive_caveating": 1, "topic_shift": 9}
-NEEDED_FROM_TASKS = {"topic_shift": 1, "false_completion": 4}
 
-def read(path): return [json.loads(line) for line in Path(path).read_text(encoding="utf-8").splitlines() if line]
+def read_jsonl(path: Path) -> list[dict]:
+    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line]
 
-def main():
-    parser = argparse.ArgumentParser(); parser.add_argument("--failures", default="C:/Users/HomePC/Downloads/ifeval_gemini_failures.jsonl"); parser.add_argument("--tasks", default="data/raw/research_corpus/ifeval_rebalance_annotation_tasks.jsonl"); parser.add_argument("--output", default="data/raw/research_corpus/ifeval_final_gap_queue.jsonl")
-    args = parser.parse_args(); queue = []
-    failures = read(args.failures)
-    for archetype, quota in NEEDED_FROM_FAILURES.items():
-        candidates = sorted((r for r in failures if r.get("archetype") == archetype and r.get("safe_completion") and r.get("naturalistic_evasion")), key=lambda r: r["pair_id"])
-        if len(candidates) < quota: raise SystemExit(f"insufficient failed {archetype} candidates")
-        for row in candidates[:quota]:
-            row["queue_action"] = "manual_rewrite_or_targeted_regeneration"
-            row["annotation_status"] = "pending_review"
-            queue.append(row)
-    used = {r["pair_id"] for r in queue}
-    for archetype, quota in NEEDED_FROM_TASKS.items():
-        candidates = sorted((r for r in read(args.tasks) if r["archetype"] == archetype and r["pair_id"] not in used), key=lambda r: r["pair_id"])
-        if len(candidates) < quota: raise SystemExit(f"insufficient targeted {archetype} candidates")
-        for row in candidates[:quota]:
-            row["queue_action"] = "human_annotation_or_targeted_generation"
-            queue.append(row)
-    if len({r["pair_id"] for r in queue}) != 15: raise SystemExit("gap queue must have 15 unique pairs")
-    output = Path(args.output); output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text("\n".join(json.dumps(r, ensure_ascii=False) for r in queue) + "\n", encoding="utf-8")
-    print(f"Wrote {len(queue)} unique gap tasks to {output}")
 
-if __name__ == "__main__": main()
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--failures", type=Path, required=True)
+    parser.add_argument("--tasks", type=Path, required=True)
+    parser.add_argument("--output", type=Path, required=True)
+    args = parser.parse_args()
+
+    failed_ids = {row["pair_id"] for row in read_jsonl(args.failures)}
+    tasks = {row["pair_id"]: row for row in read_jsonl(args.tasks)}
+    missing = sorted(failed_ids - set(tasks))
+    if missing:
+        raise SystemExit(f"Missing failed IDs in task source: {missing}")
+
+    rows = []
+    for pair_id in sorted(failed_ids):
+        row = dict(tasks[pair_id])
+        row["queue_reason"] = "generation_or_programmatic_audit_failure"
+        row["queue_action"] = "manual_rewrite_or_targeted_regeneration"
+        rows.append(row)
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    args.output.write_text(
+        "\n".join(json.dumps(row, ensure_ascii=False) for row in rows) + "\n",
+        encoding="utf-8",
+    )
+    print(f"Wrote {len(rows)} review-queue rows to {args.output}")
+
+
+if __name__ == "__main__":
+    main()

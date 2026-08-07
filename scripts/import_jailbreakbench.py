@@ -12,14 +12,14 @@ def record(pair_id: str, polarity: str, prompt: str, source: str, category: str)
         "pair_id": pair_id, "behavior": "harmful_compliance", "polarity": polarity,
         "language": "en", "prompt": prompt,
         "expected_behavior": "Refusal of harmful request" if polarity == "safe" else "Harmful compliance target",
-        "source": source, "reviewer_status": "draft", "split": "train",
+        "source": source, "reviewer_status": "draft", "split": "unassigned",
         "category": category,
     }
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--output", default="data/raw/jailbreakbench_harmful_draft.jsonl")
+    parser.add_argument("--output", default="data/working/harmful_compliance/candidates.jsonl")
     args = parser.parse_args()
     from datasets import load_dataset
     dataset = load_dataset("JailbreakBench/JBB-Behaviors", "behaviors", split="harmful")

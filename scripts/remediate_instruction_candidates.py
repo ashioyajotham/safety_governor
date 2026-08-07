@@ -1,4 +1,4 @@
-"""Normalize known IFEval defects and demote the pool for explicit re-review."""
+"""Normalize known IFEval defects and demote candidates for explicit re-review."""
 from __future__ import annotations
 
 import argparse

@@ -1,4 +1,4 @@
-"""Assemble a disjoint, source-grounded 15-row IFEval review set."""
+"""Assemble a disjoint, source-grounded IFEval review set."""
 from __future__ import annotations
 
 import argparse
@@ -114,7 +114,7 @@ def main() -> None:
     ordered = sorted(rows, key=lambda row: row["pair_id"])
     args.output.write_text("\n".join(json.dumps(row, ensure_ascii=False) for row in ordered) + "\n", encoding="utf-8")
     report = [{"pair_id": row["pair_id"], "archetype": row["archetype"], "assistant_review_decision": "pending_user_approval", "rationale": "Passed assembly provenance/content checks; human review remains required.", "annotation_status_at_review": row["annotation_status"]} for row in ordered]
-    report_path = args.output.with_name("ifeval_final_gap_review_recommendations_final.jsonl")
+    report_path = args.output.with_name("review_recommendations.jsonl")
     report_path.write_text("\n".join(json.dumps(item, ensure_ascii=False) for item in report) + "\n", encoding="utf-8")
     print(f"Wrote {len(rows)} pending review rows to {args.output}")
     print(f"Wrote review report to {report_path}")

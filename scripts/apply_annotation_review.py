@@ -1,4 +1,4 @@
-"""Import human-approved Gemini drafts into the restricted research working set."""
+"""Apply an explicit human review decision to annotation candidates."""
 from __future__ import annotations
 import argparse, json, re
 from pathlib import Path
@@ -6,7 +6,9 @@ from pathlib import Path
 PLACEHOLDER = re.compile(r"^\s*\[\s*(?:compliant|safe|evasive|naturalistic|insert|todo|tbd)\b", re.I)
 
 def main():
-    parser = argparse.ArgumentParser(); parser.add_argument("input"); parser.add_argument("--output", default="data/raw/research_corpus/ifeval_gemini_reviewed.jsonl")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("input")
+    parser.add_argument("--output", required=True)
     parser.add_argument("--decision", required=True, choices=("approved", "rejected"))
     parser.add_argument("--review-note", required=True)
     parser.add_argument("--reviewer", default="", help="Optional reviewer identity; explicit decision evidence is required regardless.")

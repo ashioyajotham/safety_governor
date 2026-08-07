@@ -1,20 +1,26 @@
 __pycache__/
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
 .venv/
-artifacts/
-#data/raw/
-data/raw/*
+.coverage
+htmlcov/
 
+artifacts/
+data/archive/
+data/cache/
+data/working/
+
+# Raw benchmark files are fetched locally unless explicitly pinned below.
+data/raw/**
 !data/raw/sources/
+data/raw/sources/**
 !data/raw/sources/ifeval_input_data.jsonl
 
-!data/raw/research_corpus/
-!data/raw/research_corpus/ifeval_naturalistic_annotation_draft.jsonl
-!data/raw/research_corpus/ifeval_rebalance_annotation_tasks.jsonl
-
-data/cache/
-*.pt
-*.safetensors
 .env
 wandb/
-datasets/curation/rejected/
+logs/
+*.log
+*.pt
+*.safetensors

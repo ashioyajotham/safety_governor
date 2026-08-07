@@ -1,0 +1,313 @@
+{
+    "schema_version":  1,
+    "created_on":  "2026-08-07",
+    "policy":  "archive_then_prune",
+    "entries":  [
+                    {
+                        "original_path":  "data/raw/research_corpus/deceptive_diverse_draft.jsonl",
+                        "bytes":  177979,
+                        "sha256":  "e0e268336be2bd32541866d47d1c967c5c601801eac79f10c49ed1e5d75d5b68",
+                        "disposition":  "archived",
+                        "destination":  "data/archive/deceptive_reasoning/2026-08-07_pre_remediation/candidates.jsonl",
+                        "note":  "Unique pre-remediation draft retained for lineage."
+                    },
+                    {
+                        "original_path":  "data/raw/research_corpus/deceptive_diverse_reprocheck.jsonl",
+                        "bytes":  177979,
+                        "sha256":  "e0e268336be2bd32541866d47d1c967c5c601801eac79f10c49ed1e5d75d5b68",
+                        "disposition":  "deleted_exact_duplicate",
+                        "destination":  "",
+                        "note":  "Byte-identical to the archived pre-remediation draft."
+                    },
+                    {
+                        "original_path":  "data/raw/research_corpus/deceptive_diverse_remediated.jsonl",
+                        "bytes":  185557,
+                        "sha256":  "490487ceebd8fceb68e9c1015f107885211d65a6d2854a5fb9abfc712bafa9f0",
+                        "disposition":  "deleted_exact_duplicate",
+                        "destination":  "",
+                        "note":  "Byte-identical to the canonical working candidate corpus."
+                    },
+                    {
+                        "original_path":  "data/raw/research_corpus/deceptive_diverse_remediated_v2.jsonl",
+                        "bytes":  185557,
+                        "sha256":  "490487ceebd8fceb68e9c1015f107885211d65a6d2854a5fb9abfc712bafa9f0",
+                        "disposition":  "promoted",
+                        "destination":  "data/working/deceptive_reasoning/candidates.jsonl",
+                        "note":  "Canonical provider-neutral working path."
+                    },
+                    {
+                        "original_path":  "data/raw/research_corpus/ifeval_final_gap_queue.jsonl",
+                        "bytes":  31482,
+                        "sha256":  "10136c76166ccc8314d428e436a4521108e2f7d73d4b3e5f82e9b2f8c965a965",
+                        "disposition":  "archived",
+                        "destination":  "data/archive/annotation_runs/2026-08-07_ifeval_final_gap/review_queue.jsonl",
+                        "note":  "Historical annotation-run input."
+                    },
+                    {
+                        "original_path":  "data/raw/research_corpus/ifeval_gemini_reviewed.jsonl",
+                        "bytes":  431309,
+                        "sha256":  "6db35898af78f25074b28f5fff7d28d44b3a4035905e22d8ba2481b93727203d",
+                        "disposition":  "archived",
+                        "destination":  "data/archive/instruction_noncompliance/2026-08-07_remediation/pre_remediation_reviewed_pool.jsonl",
+                        "note":  "Immutable pre-remediation pool."
+                    },
+                    {
+                        "original_path":  "data/raw/research_corpus/ifeval_gemini_remediated_pending.jsonl",
+                        "bytes":  437234,
+                        "sha256":  "5722e6359b2954a5ec757a762eedf137381cc8c6102671c44c0a13c6c4dffea1",
+                        "disposition":  "archived",
+                        "destination":  "data/archive/instruction_noncompliance/2026-08-07_remediation/remediated_pending_pool.jsonl",
+                        "note":  "Input to the canonical 150-candidate assembly."
+                    },
+                    {
+                        "original_path":  "data/raw/jailbreakbench_harmful_draft.jsonl",
+                        "bytes":  102839,
+                        "sha256":  "24c3eae584ec31d69c7578a7291cc36a41d177639cd7178cd5d7ba14dadcfd58",
+                        "disposition":  "promoted",
+                        "destination":  "data/working/harmful_compliance/candidates.jsonl",
+                        "note":  "Restricted working corpus retained with review state unchanged; legacy pre-approval split labels were normalized to unassigned.",
+                        "destination_sha256":  "24c3eae584ec31d69c7578a7291cc36a41d177639cd7178cd5d7ba14dadcfd58"
+                    },
+                    {
+                        "original_path":  "data/raw/sw_translation_manifest_pilot_invalidated.jsonl",
+                        "bytes":  95409,
+                        "sha256":  "b061dba6ce25887ba4c7d564c686a7d6f2c93272620a95e2feba60fff0a0fac9",
+                        "disposition":  "archived",
+                        "destination":  "data/archive/pilot/sw_translation_manifest_invalidated.jsonl",
+                        "note":  "Invalidated pilot manifest retained for lineage."
+                    },
+                    {
+                        "original_path":  "datasets/curation/gemini_ifeval_final_gap/ifeval_final_gap_review_recommendations.jsonl",
+                        "bytes":  4360,
+                        "sha256":  "43bc3d569b2db7936f06bcec02d32479531e6777dbbd46d82b2e417287ebf53a",
+                        "disposition":  "archived",
+                        "destination":  "data/archive/annotation_runs/2026-08-07_ifeval_final_gap/ifeval_final_gap_review_recommendations.jsonl",
+                        "note":  "Provider-specific run record retained locally."
+                    },
+                    {
+                        "original_path":  "datasets/curation/gemini_ifeval_final_gap/ifeval_final_gap_review_recommendations_final.jsonl",
+                        "bytes":  3770,
+                        "sha256":  "dcda39823f1cdd04bde9dda6ecf6ffc77d4b0b475e59c61d624437fb41c9b801",
+                        "disposition":  "archived",
+                        "destination":  "data/archive/annotation_runs/2026-08-07_ifeval_final_gap/ifeval_final_gap_review_recommendations_final.jsonl",
+                        "note":  "Provider-specific run record retained locally."
+                    },
+                    {
+                        "original_path":  "datasets/curation/gemini_ifeval_final_gap/ifeval_final_gap_review_set.jsonl",
+                        "bytes":  36508,
+                        "sha256":  "140131219a601b418fb1b58838d2d8605ed810e0070b7cd0a525e4fc53aeae71",
+                        "disposition":  "archived",
+                        "destination":  "data/archive/annotation_runs/2026-08-07_ifeval_final_gap/ifeval_final_gap_review_set.jsonl",
+                        "note":  "Provider-specific run record retained locally."
+                    },
+                    {
+                        "original_path":  "datasets/curation/gemini_ifeval_final_gap/ifeval_gemini_drafts.jsonl",
+                        "bytes":  33838,
+                        "sha256":  "7f12f9c4a2d1ecb9fec3b8b5f67303a61ae3c6fae84084c9cf70caa8356c0483",
+                        "disposition":  "archived",
+                        "destination":  "data/archive/annotation_runs/2026-08-07_ifeval_final_gap/ifeval_gemini_drafts.jsonl",
+                        "note":  "Provider-specific run record retained locally."
+                    },
+                    {
+                        "original_path":  "datasets/curation/gemini_ifeval_final_gap/ifeval_gemini_failures.jsonl",
+                        "bytes":  16923,
+                        "sha256":  "b60cef81b0834d33285f2cc3ae930d34dbd1f44c520aab165cc302a01d8f82a9",
+                        "disposition":  "archived",
+                        "destination":  "data/archive/annotation_runs/2026-08-07_ifeval_final_gap/ifeval_gemini_failures.jsonl",
+                        "note":  "Provider-specific run record retained locally."
+                    },
+                    {
+                        "original_path":  "datasets/curation/gemini_ifeval_final_gap/ifeval_gemini_raw_responses.jsonl",
+                        "bytes":  271950,
+                        "sha256":  "21c154806a3797aed4a8cee74c77dbe748d02b0411aa45937b7ccc0836a500f2",
+                        "disposition":  "archived",
+                        "destination":  "data/archive/annotation_runs/2026-08-07_ifeval_final_gap/ifeval_gemini_raw_responses.jsonl",
+                        "note":  "Provider-specific run record retained locally."
+                    },
+                    {
+                        "original_path":  "datasets/curation/gemini_ifeval_final_gap/ifeval_gemini_repaired_topic_shift.jsonl",
+                        "bytes":  18083,
+                        "sha256":  "f2c9e500c5ede53d08f2137e2f11880ad2190dac81e58d0bb27a8863b8433c7a",
+                        "disposition":  "archived",
+                        "destination":  "data/archive/annotation_runs/2026-08-07_ifeval_final_gap/ifeval_gemini_repaired_topic_shift.jsonl",
+                        "note":  "Provider-specific run record retained locally."
+                    },
+                    {
+                        "original_path":  "datasets/curation/gemini_ifeval_final_gap/ifeval_gemini_run_manifest.json",
+                        "bytes":  1080,
+                        "sha256":  "6fc06067dcf2ff36798b38711ffa1201d25c497b4f21b42e5efba3df48018a05",
+                        "disposition":  "archived",
+                        "destination":  "data/archive/annotation_runs/2026-08-07_ifeval_final_gap/ifeval_gemini_run_manifest.json",
+                        "note":  "Provider-specific run record retained locally."
+                    },
+                    {
+                        "original_path":  "datasets/curation/rejected/deceptive_reasoning_draft_before_degenerate_filter.jsonl",
+                        "bytes":  92656,
+                        "sha256":  "7dbb75fdf28a2c59ea1b4a5d8be4abfb55d78d193afef36054651ae7881651d1",
+                        "disposition":  "archived",
+                        "destination":  "data/archive/curation_rejections/deceptive_reasoning/deceptive_reasoning_draft_before_degenerate_filter.jsonl",
+                        "note":  "Rejected draft retained for curation lineage."
+                    },
+                    {
+                        "original_path":  "datasets/curation/rejected/deceptive_reasoning_draft_pair_deduped_but_prompt_duplicates.jsonl",
+                        "bytes":  92632,
+                        "sha256":  "777ff7a339d497c14d1b981db25a241879439ef721f2c5463abb3bfa50c53f7f",
+                        "disposition":  "archived",
+                        "destination":  "data/archive/curation_rejections/deceptive_reasoning/deceptive_reasoning_draft_pair_deduped_but_prompt_duplicates.jsonl",
+                        "note":  "Rejected draft retained for curation lineage."
+                    },
+                    {
+                        "original_path":  "datasets/curation/rejected/deceptive_reasoning_draft_with_duplicates.jsonl",
+                        "bytes":  92656,
+                        "sha256":  "8fd82637ae8401cccfdff26557f6c1d7f1775bc06f26d43d192574db66788c33",
+                        "disposition":  "archived",
+                        "destination":  "data/archive/curation_rejections/deceptive_reasoning/deceptive_reasoning_draft_with_duplicates.jsonl",
+                        "note":  "Rejected draft retained for curation lineage."
+                    },
+                    {
+                        "original_path":  "artifacts/capture-20260805T170925Z/safe.npy",
+                        "bytes":  3200,
+                        "sha256":  "590dd9124f44b1372236d0915535ef3628a47aac75d97fc1f83937d8ee56f5af",
+                        "disposition":  "deleted_incomplete_duplicate",
+                        "destination":  "",
+                        "note":  "Incomplete smoke capture duplicated the successful run inputs."
+                    },
+                    {
+                        "original_path":  "artifacts/capture-20260805T170925Z/safe.npy.json",
+                        "bytes":  134,
+                        "sha256":  "6713f705214ddea925dc904f2ef53fabba1d6826e6b8af9385d6622363aed5ed",
+                        "disposition":  "deleted_incomplete_duplicate",
+                        "destination":  "",
+                        "note":  "Incomplete smoke capture duplicated the successful run inputs."
+                    },
+                    {
+                        "original_path":  "artifacts/capture-20260805T170925Z/unsafe.npy",
+                        "bytes":  3200,
+                        "sha256":  "d389c13be163697d891b18f990e1724fc6c594d355f2401ed457c00344d6a739",
+                        "disposition":  "deleted_incomplete_duplicate",
+                        "destination":  "",
+                        "note":  "Incomplete smoke capture duplicated the successful run inputs."
+                    },
+                    {
+                        "original_path":  "artifacts/capture-20260805T170925Z/unsafe.npy.json",
+                        "bytes":  134,
+                        "sha256":  "6713f705214ddea925dc904f2ef53fabba1d6826e6b8af9385d6622363aed5ed",
+                        "disposition":  "deleted_incomplete_duplicate",
+                        "destination":  "",
+                        "note":  "Incomplete smoke capture duplicated the successful run inputs."
+                    },
+                    {
+                        "original_path":  "artifacts/capture-20260805T171357Z/safe.npy",
+                        "bytes":  3200,
+                        "sha256":  "590dd9124f44b1372236d0915535ef3628a47aac75d97fc1f83937d8ee56f5af",
+                        "disposition":  "deleted_incomplete_duplicate",
+                        "destination":  "",
+                        "note":  "Incomplete smoke capture duplicated the successful run inputs."
+                    },
+                    {
+                        "original_path":  "artifacts/capture-20260805T171357Z/safe.npy.json",
+                        "bytes":  134,
+                        "sha256":  "6713f705214ddea925dc904f2ef53fabba1d6826e6b8af9385d6622363aed5ed",
+                        "disposition":  "deleted_incomplete_duplicate",
+                        "destination":  "",
+                        "note":  "Incomplete smoke capture duplicated the successful run inputs."
+                    },
+                    {
+                        "original_path":  "artifacts/capture-20260805T171357Z/unsafe.npy",
+                        "bytes":  3200,
+                        "sha256":  "d389c13be163697d891b18f990e1724fc6c594d355f2401ed457c00344d6a739",
+                        "disposition":  "deleted_incomplete_duplicate",
+                        "destination":  "",
+                        "note":  "Incomplete smoke capture duplicated the successful run inputs."
+                    },
+                    {
+                        "original_path":  "artifacts/capture-20260805T171357Z/unsafe.npy.json",
+                        "bytes":  134,
+                        "sha256":  "6713f705214ddea925dc904f2ef53fabba1d6826e6b8af9385d6622363aed5ed",
+                        "disposition":  "deleted_incomplete_duplicate",
+                        "destination":  "",
+                        "note":  "Incomplete smoke capture duplicated the successful run inputs."
+                    },
+                    {
+                        "original_path":  "artifacts/capture-20260805T173625Z/dim_vector.npy",
+                        "bytes":  3200,
+                        "sha256":  "e2d88623bd4054117bbf451bce78cd3604aae99c28dfc9bc4df3fb0fb5645d95",
+                        "disposition":  "retained_pilot",
+                        "destination":  "artifacts/pilot/gpt2_smoke_2026-08-05/dim_vector.npy",
+                        "note":  "Complete GPT-2 smoke run retained locally."
+                    },
+                    {
+                        "original_path":  "artifacts/capture-20260805T173625Z/dim_vector.stability.npy",
+                        "bytes":  208,
+                        "sha256":  "efe0504dcaf980449ab647bfba8c6fe3e8905fad386a7201027265fa786b53e6",
+                        "disposition":  "retained_pilot",
+                        "destination":  "artifacts/pilot/gpt2_smoke_2026-08-05/dim_vector.stability.npy",
+                        "note":  "Complete GPT-2 smoke run retained locally."
+                    },
+                    {
+                        "original_path":  "artifacts/capture-20260805T173625Z/manifest.json",
+                        "bytes":  1204,
+                        "sha256":  "4f420f6335e6b39f22814b74640a6c5379718307ad34a1dc672964b1d41e8f0a",
+                        "disposition":  "retained_pilot",
+                        "destination":  "artifacts/pilot/gpt2_smoke_2026-08-05/manifest.json",
+                        "note":  "Complete GPT-2 smoke run retained locally; artifact paths were normalized after relocation.",
+                        "destination_sha256":  "f2755ce17e0abd2c56e13386754cf7317e171aed54efeb000e80e58e1e989a03"
+                    },
+                    {
+                        "original_path":  "artifacts/capture-20260805T173625Z/safe.npy",
+                        "bytes":  3200,
+                        "sha256":  "590dd9124f44b1372236d0915535ef3628a47aac75d97fc1f83937d8ee56f5af",
+                        "disposition":  "retained_pilot",
+                        "destination":  "artifacts/pilot/gpt2_smoke_2026-08-05/safe.npy",
+                        "note":  "Complete GPT-2 smoke run retained locally."
+                    },
+                    {
+                        "original_path":  "artifacts/capture-20260805T173625Z/safe.npy.json",
+                        "bytes":  134,
+                        "sha256":  "6713f705214ddea925dc904f2ef53fabba1d6826e6b8af9385d6622363aed5ed",
+                        "disposition":  "retained_pilot",
+                        "destination":  "artifacts/pilot/gpt2_smoke_2026-08-05/safe.npy.json",
+                        "note":  "Complete GPT-2 smoke run retained locally."
+                    },
+                    {
+                        "original_path":  "artifacts/capture-20260805T173625Z/unsafe.npy",
+                        "bytes":  3200,
+                        "sha256":  "d389c13be163697d891b18f990e1724fc6c594d355f2401ed457c00344d6a739",
+                        "disposition":  "retained_pilot",
+                        "destination":  "artifacts/pilot/gpt2_smoke_2026-08-05/unsafe.npy",
+                        "note":  "Complete GPT-2 smoke run retained locally."
+                    },
+                    {
+                        "original_path":  "artifacts/capture-20260805T173625Z/unsafe.npy.json",
+                        "bytes":  134,
+                        "sha256":  "6713f705214ddea925dc904f2ef53fabba1d6826e6b8af9385d6622363aed5ed",
+                        "disposition":  "retained_pilot",
+                        "destination":  "artifacts/pilot/gpt2_smoke_2026-08-05/unsafe.npy.json",
+                        "note":  "Complete GPT-2 smoke run retained locally."
+                    },
+                    {
+                        "original_path":  "data/raw/research_corpus/ifeval_naturalistic_annotation_draft.jsonl",
+                        "bytes":  112009,
+                        "sha256":  "608d4be9daf6d573a491e66fbac8f1b559522dd7ec207617e0343f99f689cbf2",
+                        "disposition":  "archived",
+                        "destination":  "data/archive/instruction_noncompliance/2026-08-05_pre_annotation/ifeval_naturalistic_annotation_draft.jsonl",
+                        "note":  "Superseded pre-annotation task material retained for lineage."
+                    },
+                    {
+                        "original_path":  "data/raw/research_corpus/ifeval_rebalance_annotation_tasks.jsonl",
+                        "bytes":  36147,
+                        "sha256":  "2685abb565280a7f5ee7cf32a393d99cdec9563d0289eb66f096d5012f7f9846",
+                        "disposition":  "archived",
+                        "destination":  "data/archive/instruction_noncompliance/2026-08-05_pre_annotation/ifeval_rebalance_annotation_tasks.jsonl",
+                        "note":  "Superseded pre-annotation task material retained for lineage."
+                    },
+                    {
+                        "original_path":  "data/working/harmful_compliance/candidates.jsonl",
+                        "bytes":  102839,
+                        "sha256":  "24c3eae584ec31d69c7578a7291cc36a41d177639cd7178cd5d7ba14dadcfd58",
+                        "disposition":  "archived_before_metadata_normalization",
+                        "destination":  "data/archive/harmful_compliance/2026-08-07_pre_split_normalization/candidates.jsonl",
+                        "note":  "Original pending-review corpus with legacy train labels retained for lineage."
+                    }
+                ]
+}
