@@ -5,7 +5,7 @@ import argparse
 from pathlib import Path
 import numpy as np
 
-from safety_governor.activations import load_matrix
+from safety_governor.activations import load_matrix, load_metadata
 from safety_governor.vectors import bootstrap_cosine, difference_in_means, pca_direction, probe_direction
 
 METHODS = {"difference_in_means": difference_in_means, "pca": pca_direction, "probe": probe_direction}
@@ -20,6 +20,9 @@ def main() -> None:
     parser.add_argument("--bootstrap-samples", type=int, default=100)
     args = parser.parse_args()
     safe, unsafe = load_matrix(args.safe), load_matrix(args.unsafe)
+    safe_metadata, unsafe_metadata = load_metadata(args.safe), load_metadata(args.unsafe)
+    if safe_metadata.get("sample_ids") != unsafe_metadata.get("sample_ids"):
+        raise SystemExit("safe/unsafe activation sample IDs are not pair-aligned")
     extractor = METHODS[args.method]
     vector = extractor(safe, unsafe)
     stability = bootstrap_cosine(extractor, safe, unsafe, args.bootstrap_samples)

@@ -19,8 +19,12 @@ def main() -> None:
     records = load_jsonl(config["dataset"]["path"])
     errors = validate_records(records)
     if errors: raise SystemExit("Dataset validation failed:\n- " + "\n- ".join(errors))
-    safe = [r for r in records if r.polarity is Polarity.SAFE]
-    unsafe = [r for r in records if r.polarity is Polarity.UNSAFE]
+    safe_by_id = {r.pair_id: r for r in records if r.polarity is Polarity.SAFE}
+    unsafe_by_id = {r.pair_id: r for r in records if r.polarity is Polarity.UNSAFE}
+    if set(safe_by_id) != set(unsafe_by_id): raise SystemExit("safe/unsafe pair IDs are not aligned")
+    pair_ids = sorted(safe_by_id)
+    safe = [safe_by_id[pair_id] for pair_id in pair_ids]
+    unsafe = [unsafe_by_id[pair_id] for pair_id in pair_ids]
     model = load_transformerlens_model(config["model"]["name"], args.device)
     run_id = make_run_id("capture"); root = Path(args.artifacts) / run_id
     root.parent.mkdir(parents=True, exist_ok=True)

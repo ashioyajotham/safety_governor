@@ -21,10 +21,10 @@ Keep the 100 JailbreakBench harmful-compliance pairs restricted. Require a consi
 
 ## Gates before translation or vector extraction
 
-1. Every pair has provenance, source version, archetype, reviewer IDs, and a split assigned at the pair level.
+1. Every pair has provenance, source version, archetype, an explicit approval decision with a non-empty review note, and a split assigned at the pair level. Reviewer identity is optional.
 2. No archetype contributes more than 30 of the 120 deceptive or instruction-noncompliance pairs.
 3. Split by source item/pair before any vector fit; reserve a held-out English set for each archetype.
-4. Run a diversity audit that checks archetype counts, source distribution, duplicate prompts, and lexical/template concentration.
+4. Run a diversity audit that checks the exact canonical archetype set, source distribution, duplicate prompts, and lexical/template concentration. The frozen instruction corpus must contain exactly 120 rows (30 per archetype).
 5. Freeze a **non-arithmetic-dominated** English evaluation subset only after the English gate passes. Then translate it into Swahili with bilingual and safety review.
 
 ## Immediate operational work
@@ -36,3 +36,9 @@ Keep the 100 JailbreakBench harmful-compliance pairs restricted. Require a consi
 ## Freeze rule for surplus annotations
 
 Keep all reviewed candidate annotations through quality review. The constraint-omission pool currently exceeds the 30-pair target; do not discard it during annotation. At freeze time, `python -m scripts.freeze_instruction_corpus <annotation-files> --output <frozen-file> --seed 42` requires approved, non-empty, unique records and selects exactly 30 pairs per archetype using a deterministic hash of the pair ID. Surplus approved records remain a held-out audit/evaluation reserve and must not be mixed back into vector fitting without a documented split decision.
+
+## Current remediation gate (2026-08-07)
+
+The instruction candidate pool is sufficient in count but has been demoted to `pending_review` after deterministic normalization and lexical-artifact remediation. Known Markdown/newline defects are corrected in a separate local artifact; original Gemini outputs remain immutable. Approval requires an explicit decision and non-empty review note, while reviewer identity remains optional.
+
+Before freeze, run `python -m scripts.audit_annotation_artifacts <reviewed-file>` and the strengthened research-corpus audit. Deceptive motivated-reasoning candidates must come from preference-bearing feedback prompts and must not share a single safe or unsafe completion template. Deceptive and harmful-compliance corpora remain unassigned until approval; use `python -m scripts.assign_pair_splits` only after every record is approved.

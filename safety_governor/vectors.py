@@ -39,11 +39,15 @@ def probe_direction(safe: np.ndarray, unsafe: np.ndarray, l2: float = 1.0) -> np
 
 
 def bootstrap_cosine(extractor, safe: np.ndarray, unsafe: np.ndarray, samples: int = 100, seed: int = 0) -> np.ndarray:
+    """Paired bootstrap over aligned safe/unsafe contrastive examples."""
+    if len(safe) != len(unsafe):
+        raise ValueError("paired bootstrap requires equal safe and unsafe row counts")
+    if len(safe) == 0:
+        raise ValueError("paired bootstrap requires at least one pair")
     rng = np.random.default_rng(seed)
     reference = extractor(safe, unsafe)
     scores = []
     for _ in range(samples):
-        s = safe[rng.integers(0, len(safe), len(safe))]
-        u = unsafe[rng.integers(0, len(unsafe), len(unsafe))]
-        scores.append(float(np.dot(reference, extractor(s, u))))
+        indices = rng.integers(0, len(safe), len(safe))
+        scores.append(float(np.dot(reference, extractor(safe[indices], unsafe[indices]))))
     return np.asarray(scores)

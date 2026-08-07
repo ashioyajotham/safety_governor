@@ -21,3 +21,7 @@ def load_matrix(path: str | Path) -> np.ndarray:
     if values.ndim != 2:
         raise ValueError("activation matrix must have shape [examples, hidden]")
     return values
+
+def load_metadata(path: str | Path) -> dict:
+    metadata_path = Path(path).with_suffix(Path(path).suffix + ".json")
+    return json.loads(metadata_path.read_text(encoding="utf-8"))

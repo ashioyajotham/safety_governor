@@ -24,13 +24,13 @@ The predeclared viability target is targeted suppression above 70% with an MMLU 
 - Phase 1 operational smoke run is complete: GPT-2 Small loaded with TransformerLens on CPU; layer-0 residual activations, a reproducible manifest, and a difference-in-means vector were produced from the fixture data.
 - The smoke artifact verifies the pipeline only. It is not evidence for a safety claim because the fixture has one contrastive pair.
 - The original 300-pair English corpus is retained as a pilot and is not valid for RQ1–RQ3 claims: its arithmetic and template subsets lack required domain diversity. See docs/data_quality_remediation.md.
-- The next research gate is a diverse, source-backed English corpus; Swahili translation begins only after that corpus passes the diversity and review gates.
+- The source-backed English candidate pools now reach the intended instruction-corpus quotas, but they are not frozen. The current gate is post-remediation human review, lexical-artifact auditing, approval, and pair-level splitting across instruction non-compliance, deceptive reasoning, and harmful compliance. Swahili translation and Llama-3 vector fitting remain blocked until those gates pass.
 
 ## Data and research controls
 
 The harmful-compliance records are stored under `data/raw/` and are intentionally ignored by Git. They originate from JailbreakBench and must not be copied into public issues, logs, examples, or commits.
 
-Every record has a pair ID, behavior, polarity, language, provenance, reviewer status, and split. Pairs—not individual rows—are assigned to splits. The repository validates duplicate prompts, incomplete pairs, split leakage, and missing provenance. See [dataset governance](docs/dataset_governance.md) and the [curation workflow](docs/dataset_curation_workflow.md).
+Every record has a pair ID, behavior, polarity, language, provenance, explicit review decision evidence, and a pair-level split. Reviewer identity is optional; approval is never inferred from import. Pairs—not individual rows—are assigned to splits. The repository validates duplicate prompts, incomplete pairs, split leakage, and missing provenance. See [dataset governance](docs/dataset_governance.md) and the [curation workflow](docs/dataset_curation_workflow.md).
 
 ## Repository layout
 
