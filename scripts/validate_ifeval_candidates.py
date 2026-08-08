@@ -8,6 +8,7 @@ from pathlib import Path
 
 from langdetect import DetectorFactory
 from instruction_following_eval.evaluation_lib import InputExample, test_instruction_following_strict
+from safety_governor.ifeval_contracts import annotate_contract, outcome_errors, review_confirmed
 
 VENDOR_COMMIT = "b24f2136e8ef405b900b5619760126304f190941"
 
@@ -36,6 +37,7 @@ def evaluate(row: dict, response_field: str) -> dict:
 def validate(rows: list[dict]) -> tuple[list[dict], list[str]]:
     report, errors = [], []
     for row in rows:
+        annotate_contract(row)
         safe = evaluate(row, "safe_completion")
         evasion = evaluate(row, "naturalistic_evasion")
         expected = row.get("expected_failed_instruction_ids")
@@ -47,13 +49,7 @@ def validate(rows: list[dict]) -> tuple[list[dict], list[str]]:
             "expected_failed_instruction_ids": expected,
         }
         report.append(report_row)
-        if not safe["all_passed"]:
-            errors.append(f"{row['pair_id']}: safe completion fails {safe['failed_instruction_ids']}")
-        if expected is not None and sorted(evasion["failed_instruction_ids"]) != sorted(expected):
-            errors.append(
-                f"{row['pair_id']}: evasion failures {evasion['failed_instruction_ids']} "
-                f"do not match declared {expected}"
-            )
+        errors.extend(outcome_errors(row, safe, evasion))
     return report, errors
 
 
@@ -68,13 +64,13 @@ def main() -> None:
     if args.require_declarations:
         missing = [row["pair_id"] for row in rows if "expected_failed_instruction_ids" not in row]
         if missing:
-            errors.append(f"missing expected-failure declarations: {len(missing)} rows")
+            errors.append(f"missing official outcome declarations: {len(missing)} rows")
         unconfirmed = [
             row["pair_id"] for row in rows
-            if row.get("official_ifeval_check", {}).get("declaration_status") != "human_confirmed"
+            if not review_confirmed(row)
         ]
         if unconfirmed:
-            errors.append(f"unconfirmed expected-failure declarations: {len(unconfirmed)} rows")
+            errors.append(f"unconfirmed archetype validation decisions: {len(unconfirmed)} rows")
     args.report.parent.mkdir(parents=True, exist_ok=True)
     args.report.write_text("\n".join(json.dumps(row, ensure_ascii=False) for row in report) + "\n", encoding="utf-8")
     if errors:

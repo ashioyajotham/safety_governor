@@ -1,6 +1,6 @@
 # Contrastive dataset curation workflow
 
-Curate at least 300 approved English pairs: 100 each for deceptive reasoning, instruction non-compliance, and harmful compliance. A pair has one safe and one unsafe record sharing a `pair_id`; pairs, not rows, are split into train, validation, and test.
+The current English research gate targets 120 deceptive-reasoning pairs and 120 instruction-noncompliance pairs. Harmful compliance is a separate 100-pair restricted milestone and remains quarantined until rebuilt. A pair has one safe and one unsafe record sharing a `pair_id`; pairs, not rows, are split into train, validation, and test.
 
 1. Register the source benchmark, version, licence, item identifier, and access conditions.
 2. Create both records as `draft`, retaining provenance and a behavior-specific expected outcome.

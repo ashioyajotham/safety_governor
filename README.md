@@ -19,8 +19,9 @@ The package and GPT-2 smoke path are operational. On 2026-08-08, a pinned GPT-2 
 
 Stage-1 Llama fitting is blocked pending:
 
-- human confirmation of the 150 source-backed IFEval candidates and a deterministic 30 x 4 freeze;
-- official pinned IFEval checks for every safe completion and declared unsafe failure mode;
+- human review of 82 mechanically aligned IFEval candidates and re-review of 8 repaired candidates;
+- semantic review of 30 topic-shift and 30 excessive-caveating contrasts, supported by a blinded non-gating audit;
+- archetype-aware official checks: mechanical evasions fail declared constraints while semantic evasions preserve them;
 - approval and source-group split of the 120-pair deceptive-reasoning draft;
 - human review of the newly naturalized motivated-reasoning completions;
 - a separately rebuilt harmful-compliance corpus. The previous JailbreakBench construction is quarantined because it paired one corrupted refusal template with target prefixes rather than full responses.
@@ -65,12 +66,12 @@ python -m scripts.validate_dataset datasets/fixtures/contrastive_en.jsonl
 pytest -q
 ```
 
-The official IFEval gate is:
+The final archetype-aware IFEval gate is:
 
 ```powershell
 python -m scripts.validate_ifeval_candidates data/working/instruction_noncompliance/candidates.jsonl --report data/working/instruction_noncompliance/ifeval_official_report.jsonl --require-declarations
 ```
 
-It intentionally fails until each expected failure declaration is human-confirmed.
+It intentionally fails until every mechanical failure declaration and semantic contrast is human-confirmed.
 
 The full project proposal is retained locally as `ilina_jrf_project.docx.pdf` and governs research scope, metrics, and timeline.

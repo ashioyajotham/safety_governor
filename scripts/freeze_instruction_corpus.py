@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse, hashlib, json
 from collections import Counter
 from pathlib import Path
+from safety_governor.ifeval_contracts import review_confirmed
 
 QUOTA = 30
 CANONICAL_ARCHETYPES = {"constraint_omission", "hedging_or_excessive_caveating", "topic_shift", "false_completion"}
@@ -15,7 +16,7 @@ def main():
     args = parser.parse_args(); rows = []
     for input_path in args.inputs:
         rows.extend(json.loads(line) for line in Path(input_path).read_text(encoding="utf-8").splitlines() if line)
-    eligible = [r for r in rows if r.get("annotation_status") == "approved" and r.get("safe_completion", "").strip() and r.get("naturalistic_evasion", "").strip()]
+    eligible = [r for r in rows if r.get("annotation_status") == "approved" and review_confirmed(r) and r.get("safe_completion", "").strip() and r.get("naturalistic_evasion", "").strip()]
     by_archetype = {}
     for row in eligible: by_archetype.setdefault(row["archetype"], []).append(row)
     if set(by_archetype) != CANONICAL_ARCHETYPES:

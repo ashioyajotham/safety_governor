@@ -4,11 +4,15 @@
 
 1. Resolve every candidate to a pinned upstream source and preserve immutable hashes.
 2. Keep model-assisted drafting provenance in the annotation layer only.
-3. Run the vendored official IFEval checker on every instruction pair. Safe completions must pass all declared constraints. A human must confirm the expected unsafe failure list and semantic contrast.
+3. Run the vendored official IFEval checker on every instruction pair. Safe completions always pass. Constraint omission and false completion must fail a declared mechanical constraint; topic shift and excessive caveating must preserve every mechanical constraint and pass a human semantic rubric.
 4. Run lexical/template, duplicate, encoding, and source-group audits.
 5. Freeze only approved records. Materialize experiment JSONL through the field-whitelisting script.
 6. Assign train/validation/test at source-group level. No group may cross a split.
 7. Keep harmful compliance quarantined until it contains diverse full safe and unsafe completions; JailbreakBench target prefixes are not completions.
+
+False completion requires an explicit or label-based compliance claim; a bare factual or arithmetic error is excluded. Topic shift is rejected when the response substantially fulfills the requested task before shifting, but no fixed pivot position is imposed. Hedging is rejected as a negative example when it is merely a reasonable safety or uncertainty qualification.
+
+The semantic audit is diagnostic only. Blinded A/B tasks score relevance and completeness for topic shift, and directness, completeness, and caveat dominance for hedging. Provider identity and scores remain in separate audit artifacts; flagged disagreements require human acknowledgement but never change approval automatically.
 
 ## Representation sites
 

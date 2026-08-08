@@ -309,6 +309,30 @@
                         "disposition":  "archived_before_metadata_normalization",
                         "destination":  "data/archive/harmful_compliance/2026-08-07_pre_split_normalization/candidates.jsonl",
                         "note":  "Original pending-review corpus with legacy train labels retained for lineage."
+                    },
+                    {
+                        "original_path":  "data/working/instruction_noncompliance/candidates.jsonl",
+                        "bytes":  522843,
+                        "sha256":  "da8a625789bf3cb5d04e129d402b8fadd6eb892125cc88881617218acb07ad93",
+                        "disposition":  "archived_before_archetype_contract",
+                        "destination":  "data/archive/instruction_noncompliance/2026-08-08_pre_archetype_contract/candidates.jsonl",
+                        "note":  "Pre-contract 150-candidate pool retained before mechanical-versus-semantic validation split."
+                    },
+                    {
+                        "original_path":  "data/working/instruction_noncompliance/ifeval_official_report.jsonl",
+                        "bytes":  44448,
+                        "sha256":  "0cb89a708199520f0941545297dfce0810014d9c19ebfc7ad5d2038f9a3648cd",
+                        "disposition":  "archived_before_archetype_contract",
+                        "destination":  "data/archive/instruction_noncompliance/2026-08-08_pre_archetype_contract/ifeval_official_report.jsonl",
+                        "note":  "Universal-failure checker report retained for methodological lineage."
+                    },
+                    {
+                        "original_path":  "data/working/instruction_noncompliance/final_review_queue.jsonl",
+                        "bytes":  335087,
+                        "sha256":  "95800bae0aa4f68862a49705b7c00521da77c0570f31dfbfaed65fc167cb50d3",
+                        "disposition":  "archived_repartitioned",
+                        "destination":  "data/archive/instruction_noncompliance/2026-08-08_pre_archetype_contract/final_review_queue.jsonl",
+                        "note":  "Legacy 150-row pending queue archived before repartition; no completed decisions were present."
                     }
                 ]
 }

@@ -1,36 +1,47 @@
 {
-  "schema_version": 1,
-  "public_sources": "datasets/manifests/source_corpora.json",
-  "restricted_bundle": {
-    "description": "Ignored local annotations and restricted data supplied separately from Git.",
-    "manifest": "datasets/manifests/working_state.json",
-    "required_paths": [
-      "data/working/instruction_noncompliance/candidates.jsonl",
-      "data/working/instruction_noncompliance/ifeval_official_report.jsonl",
-      "data/working/instruction_noncompliance/final_review_queue.jsonl",
-      "data/working/deceptive_reasoning/candidates.jsonl",
-      "data/working/deceptive_reasoning/motivated_review_queue.jsonl",
-      "data/working/harmful_compliance/quarantined_legacy_candidates.jsonl"
-    ]
-  },
-  "commands": {
-    "verify_inputs": [
-      "python -m scripts.fetch_corpus_sources",
-      "python -m scripts.verify_working_state",
-      "python -m scripts.verify_reconstruction_inputs"
-    ],
-    "pre_review_gates": [
-      "python -m scripts.validate_ifeval_candidates data/working/instruction_noncompliance/candidates.jsonl --report data/working/instruction_noncompliance/ifeval_official_report.jsonl",
-      "python -m scripts.audit_annotation_artifacts data/working/instruction_noncompliance/candidates.jsonl",
-      "python -m scripts.audit_annotation_artifacts data/working/deceptive_reasoning/candidates.jsonl --strict-archetype motivated_reasoning"
-    ],
-    "post_review_sequence": [
-      "apply fully resolved final review queues",
-      "run IFEval with --require-declarations",
-      "freeze 30 approved instruction pairs per archetype",
-      "materialize provider-isolated contrastive records",
-      "assign archetype-stratified source-group splits",
-      "verify the pinned runtime before activation capture"
-    ]
-  }
+    "schema_version":  2,
+    "public_sources":  "datasets/manifests/source_corpora.json",
+    "restricted_bundle":  {
+                              "description":  "Ignored local annotations and restricted data supplied separately from Git.",
+                              "manifest":  "datasets/manifests/working_state.json",
+                              "required_paths":  [
+                                                     "data/working/instruction_noncompliance/candidates.jsonl",
+                                                     "data/working/instruction_noncompliance/ifeval_official_report.jsonl",
+                                                     "data/working/instruction_noncompliance/mechanical_review_queue.jsonl",
+                                                     "data/working/instruction_noncompliance/repaired_review_queue.jsonl",
+                                                     "data/working/instruction_noncompliance/semantic_review_queue.jsonl",
+                                                     "data/working/instruction_noncompliance/semantic_audit/tasks.jsonl",
+                                                     "data/working/instruction_noncompliance/semantic_audit/blind_mapping.jsonl",
+                                                     "data/working/instruction_noncompliance/semantic_audit/export_manifest.json",
+                                                     "data/working/deceptive_reasoning/candidates.jsonl",
+                                                     "data/working/deceptive_reasoning/motivated_review_queue.jsonl",
+                                                     "data/working/harmful_compliance/quarantined_legacy_candidates.jsonl"
+                                                 ]
+                          },
+    "commands":  {
+                     "verify_inputs":  [
+                                           "python -m scripts.fetch_corpus_sources",
+                                           "python -m scripts.verify_working_state",
+                                           "python -m scripts.verify_reconstruction_inputs"
+                                       ],
+                     "pre_review_gates":  [
+                                              "python -m scripts.validate_ifeval_candidates data/working/instruction_noncompliance/candidates.jsonl --report data/working/instruction_noncompliance/ifeval_official_report.jsonl",
+                                              "python -m scripts.audit_annotation_artifacts data/working/instruction_noncompliance/candidates.jsonl",
+                                              "python -m scripts.audit_annotation_artifacts data/working/deceptive_reasoning/candidates.jsonl --strict-archetype motivated_reasoning"
+                                          ],
+                     "review_sequence":  [
+                                             "review 82 mechanically aligned candidates",
+                                             "re-review 8 repaired mechanical candidates",
+                                             "run and acknowledge the 60-row blinded semantic diagnostic",
+                                             "review 60 semantic contrasts under archetype rubrics"
+                                         ],
+                     "post_review_sequence":  [
+                                                  "apply fully resolved partitioned review queues",
+                                                  "run IFEval with --require-declarations",
+                                                  "freeze 30 approved instruction pairs per archetype",
+                                                  "materialize provider-isolated contrastive records",
+                                                  "assign archetype-stratified source-group splits",
+                                                  "verify the pinned runtime before activation capture"
+                                              ]
+                 }
 }

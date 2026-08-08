@@ -21,7 +21,11 @@ def main() -> None:
         digest = hashlib.sha256(path.read_bytes()).hexdigest()
         if digest != artifact["sha256"]:
             failures.append(f"hash mismatch: {path}")
-        records = sum(1 for line in path.read_text(encoding="utf-8").splitlines() if line)
+        if path.suffix == ".json":
+            json.loads(path.read_text(encoding="utf-8"))
+            records = 1
+        else:
+            records = sum(1 for line in path.read_text(encoding="utf-8").splitlines() if line)
         if records != artifact["records"]:
             failures.append(f"record count mismatch: {path}")
     if failures:

@@ -29,7 +29,7 @@ Keep the 100 JailbreakBench harmful-compliance pairs restricted. Require a consi
 
 ## Immediate operational work
 
-- Upgrade or isolate the dataset-loading environment so TruthfulQA can be ingested reproducibly; the currently installed `datasets` package fails on that dataset’s feature schema.
+- Upgrade or isolate the dataset-loading environment so TruthfulQA can be ingested reproducibly; the currently installed `datasets` package fails on that dataset's feature schema.
 - Add source importers and a corpus-audit command before adding any new approval labels.
 - Do not report cross-lingual results until the replacement manifest is filled and reviewed.
 
@@ -45,7 +45,9 @@ Before freeze, run `python -m scripts.audit_annotation_artifacts <reviewed-file>
 
 ## 2026-08-08 scientific hardening gate
 
-The instruction pool has 150 source-resolved candidates. All safe completions pass the pinned official IFEval strict checker. Twelve concentrated hedging evasions were individually rewritten while preserving their constraints; the lexical artifact audit now passes (hedging cues 2/30; false-completion cues 9/30). Expected unsafe failure lists remain pending human confirmation, so the freeze gate intentionally fails closed. The human queue is `data/working/instruction_noncompliance/final_review_queue.jsonl`.
+The instruction pool has 150 source-resolved candidates under archetype-aware validation. All safe completions pass the pinned official checker. The 90 mechanical candidates require a declared unsafe constraint failure; 60 semantic candidates preserve all mechanics and require human behavioural review. The current queues contain 82 mechanically aligned rows, 8 repaired rows requiring re-review, and 60 semantic rows. All 30 hedging evasions were rewritten as constraint-preserving drafts. The artifact audit passes (hedging cues 2/30; false-completion cues 8/30).
+
+The semantic audit exports blinded provider-neutral tasks. Relevance and task completeness characterize topic shift; directness, task completeness, and caveat dominance characterize hedging. Scores are diagnostic only, and flagged disagreements require human acknowledgement. Provider metadata and scores never enter experiment materialization.
 
 The deceptive draft now uses explicit instruction/completion boundaries and stable source groups. False-premise variants collapse to eight underlying question groups; motivated-reasoning variants collapse to fifteen argument groups. All thirty motivated pairs have individually authored, source-grounded safe and unsafe rewrites and remain draft until human review. The strict motivated audit passes with near-duplicate p95 of 0.373 for safe and 0.406 for unsafe completions. The human queue is `data/working/deceptive_reasoning/motivated_review_queue.jsonl`.
 

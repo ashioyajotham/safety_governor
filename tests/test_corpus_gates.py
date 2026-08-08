@@ -55,6 +55,11 @@ def test_freeze_requires_exact_archetype_set_and_writes_120_rows(tmp_path, monke
     source = tmp_path / "approved.jsonl"
     output = tmp_path / "frozen.jsonl"
     rows = [row(f"{archetype}-{index}", archetype) for archetype in ARCHETYPES for index in range(30)]
+    for item in rows:
+        if item["archetype"] in {"topic_shift", "hedging_or_excessive_caveating"}:
+            item["semantic_validation"] = {"status": "human_confirmed"}
+        else:
+            item["official_ifeval_check"] = {"declaration_status": "human_confirmed"}
     write_jsonl(source, rows)
     monkeypatch.setattr(sys, "argv", ["freeze", str(source), "--output", str(output)])
     freeze_instruction_corpus.main()
@@ -215,12 +220,13 @@ def test_final_review_application_fails_closed():
     from scripts.apply_final_review_queues import apply_instruction
 
     candidate = {
-        "pair_id": "p1", "official_ifeval_check": {"declaration_status": "pending"},
+        "pair_id": "p1", "archetype": "constraint_omission",
+        "official_ifeval_check": {"declaration_status": "pending"},
         "annotation_status": "pending_review",
     }
     queue = [{
         "pair_id": "p1", "failure_declaration": "pending",
-        "annotation_decision": "pending", "review_notes": "",
+        "annotation_decision": "approved", "review_notes": "checked",
     }]
     with pytest.raises(ValueError, match="unresolved failure declaration"):
         apply_instruction([candidate], queue)
