@@ -18,15 +18,12 @@ def load_transformerlens_model(name: str, revision: str, device: str | None = No
     if not revision or revision in {"main", "master", "latest"}:
         raise ValueError("model revision must be an immutable commit or tag")
     try:
-        from transformers import AutoModelForCausalLM, AutoTokenizer
+        from huggingface_hub import snapshot_download
         from transformer_lens.model_bridge import TransformerBridge
     except ImportError as exc:  # pragma: no cover
-        raise RuntimeError("Install the pinned TransformerLens/Transformers dependencies.") from exc
-    tokenizer = AutoTokenizer.from_pretrained(name, revision=revision)
-    hf_model = AutoModelForCausalLM.from_pretrained(name, revision=revision)
-    bridge = TransformerBridge(
-        model_name=name, hf_model=hf_model, tokenizer=tokenizer, device=device
-    )
+        raise RuntimeError("Install the pinned TransformerLens/Hugging Face dependencies.") from exc
+    snapshot = snapshot_download(repo_id=name, revision=revision)
+    bridge = TransformerBridge.boot_transformers(snapshot, device=device)
     bridge.enable_compatibility_mode()
     return bridge
 

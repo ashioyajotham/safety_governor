@@ -10,6 +10,7 @@ from safety_governor.config import load
 from safety_governor.data import dataset_sha256, load_jsonl, validate_records
 from safety_governor.domain import Polarity, RunManifest
 from safety_governor.models import load_transformerlens_model, residual_at_response
+from safety_governor.preflight import stage1_errors
 from safety_governor.reproducibility import environment_facts
 
 
@@ -17,7 +18,8 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("config")
     parser.add_argument("--layer", type=int, required=True)
-    parser.add_argument("--split", choices=("train",), default="train")
+    parser.add_argument("--split", choices=("train", "validation", "test"), default="train")
+    parser.add_argument("--allow-test-capture", action="store_true")
     parser.add_argument("--site", choices=("response_mean", "final_response_token"), default=None)
     parser.add_argument("--device", default=None)
     parser.add_argument("--artifacts", default="artifacts")
@@ -27,6 +29,11 @@ def main() -> None:
     errors = validate_records(records)
     if errors:
         raise SystemExit("Dataset validation failed:\n- " + "\n- ".join(errors))
+    preflight = stage1_errors(
+        config, records, split=args.split, allow_test_capture=args.allow_test_capture
+    )
+    if preflight:
+        raise SystemExit("Stage-1 preflight failed:\n- " + "\n- ".join(preflight))
     records = [record for record in records if record.split == args.split]
     if not records:
         raise SystemExit(f"no approved records found for split={args.split}")
@@ -71,6 +78,7 @@ def main() -> None:
         "capture_layer": args.layer,
         "capture_split": args.split,
         "capture_site": site,
+        "test_capture_authorized": bool(args.allow_test_capture),
     })
     path = write_manifest(args.artifacts, manifest)
     print(f"Captured {site} at layer {args.layer}; run manifest: {path}")

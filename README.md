@@ -15,7 +15,7 @@ The intervention is `A'_L = A_L + alpha v`. The predeclared provisional viabilit
 
 ## Current research gate
 
-The package and GPT-2 smoke path are operational. That smoke run verifies plumbing only and is not evidence for a safety claim.
+The package and GPT-2 smoke path are operational. On 2026-08-08, a pinned GPT-2 commit completed a CPU `response_mean` capture and a position-aware steering-hook smoke under TransformerLens 3.1.0. The tracked smoke manifest records hashes; this verifies plumbing only and is not evidence for a safety claim.
 
 Stage-1 Llama fitting is blocked pending:
 
@@ -31,7 +31,7 @@ Swahili translation remains downstream of the English freeze.
 
 Experiment records separate `instruction` from `completion`. Annotation notes, provider metadata, reviewer fields, and generation traces are excluded by the materialization step and cannot enter model input.
 
-Source groups, rather than pair IDs alone, are assigned to train/validation/test. Activation capture is train-only. The primary extraction site is the mean over response tokens; the final response token is a sensitivity analysis. PCA operates on aligned `unsafe - safe` deltas. Bootstrap resampling preserves source groups. Position-specific steering requires explicit non-padding positions.
+Source groups, rather than pair IDs alone, are assigned to train/validation/test. Vector fitting is train-only. Capture declares its split explicitly; test capture additionally requires an authorization flag. The primary extraction site is the mean over response tokens; the final response token is a sensitivity analysis. PCA operates on aligned `unsafe - safe` deltas. Bootstrap resampling preserves source groups. Position-specific steering requires explicit non-padding positions.
 
 Model repositories are pinned to immutable Hugging Face commits. Run manifests record dataset and code state, environment facts, split, layer, and capture site.
 
@@ -43,7 +43,7 @@ scripts/                     curation gates, audits, materialization, splitting,
 configs/                     pinned smoke and Stage-1 experiment configurations
 instruction_following_eval/  vendored official IFEval checker at a pinned upstream commit
 datasets/fixtures/           non-research smoke fixtures
-datasets/manifests/          tracked source and archive lineage metadata
+datasets/manifests/          tracked source, reconstruction, smoke, and archive lineage metadata
 datasets/pilot/              invalidated pilot corpus retained for auditability
 data/raw/sources/            immutable local upstream snapshots (mostly ignored)
 data/working/                mutable candidate, review, quarantine, and report data (ignored)

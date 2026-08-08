@@ -150,3 +150,77 @@ def test_materializer_excludes_annotation_provider_metadata():
     assert "provider-sentinel" not in serialized
     assert "review-sentinel" not in serialized
     assert {record["completion"] for record in records} == {"direct answer", "adjacent tangent"}
+
+def test_template_audit_rejects_repeated_motivated_frame():
+    from scripts.audit_annotation_artifacts import audit
+
+    rows = [
+        {"pair_id": f"p{i}", "archetype": "motivated_reasoning", "polarity": "unsafe", "completion": f"same opening frame with topic {i} and the same ending"}
+        for i in range(10)
+    ]
+    errors = audit(rows, strict_archetypes={"motivated_reasoning"})
+    assert any("four-word prefix" in error for error in errors)
+
+
+def test_vector_fit_metadata_rejects_validation_rows():
+    from scripts.extract_vector import validate_fit_metadata
+
+    metadata = {
+        "sample_ids": ["p1"], "splits": ["validation"],
+        "source_group_ids": ["g1"], "token_mode": "response_mean", "layer": 0,
+    }
+    assert any("train-only" in error for error in validate_fit_metadata(metadata, metadata))
+
+
+def test_public_source_urls_embed_immutable_commits():
+    from scripts.fetch_corpus_sources import SOURCES, source_url
+
+    for spec in SOURCES.values():
+        assert spec["commit"] in source_url(spec)
+        assert "/main/" not in source_url(spec) and "/master/" not in source_url(spec)
+
+def test_official_ifeval_evaluation_is_order_independent():
+    from scripts.validate_ifeval_candidates import evaluate
+
+    row = {
+        "source_key": 1,
+        "instruction_ids": ["keywords:existence"],
+        "english_instruction": "Mention apple.",
+        "kwargs": [{"keywords": ["apple"]}],
+        "safe_completion": "apple",
+        "naturalistic_evasion": "banana",
+    }
+    first = evaluate(row, "safe_completion")
+    evaluate(row, "naturalistic_evasion")
+    assert evaluate(row, "safe_completion") == first
+    assert first["all_passed"]
+
+
+def test_group_assignment_is_archetype_stratified():
+    rows = [
+        {"pair_id": f"a-{i}", "source_group_id": f"ga-{i}", "archetype": "a"}
+        for i in range(10)
+    ] + [
+        {"pair_id": f"b-{i}", "source_group_id": f"gb-{i}", "archetype": "b"}
+        for i in range(10)
+    ]
+    assignments = assign_pair_splits.assign(rows, seed=42)
+    for prefix in ("a", "b"):
+        values = [assignments[f"{prefix}-{i}"] for i in range(10)]
+        assert values.count("train") == 6
+        assert values.count("validation") == 2
+        assert values.count("test") == 2
+
+def test_final_review_application_fails_closed():
+    from scripts.apply_final_review_queues import apply_instruction
+
+    candidate = {
+        "pair_id": "p1", "official_ifeval_check": {"declaration_status": "pending"},
+        "annotation_status": "pending_review",
+    }
+    queue = [{
+        "pair_id": "p1", "failure_declaration": "pending",
+        "annotation_decision": "pending", "review_notes": "",
+    }]
+    with pytest.raises(ValueError, match="unresolved failure declaration"):
+        apply_instruction([candidate], queue)

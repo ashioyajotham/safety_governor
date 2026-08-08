@@ -18,6 +18,8 @@ The primary representation is the mean pre-residual activation over assistant re
 
 Vector fitting is train-only by construction. Validation selects method, layer, coefficient, and intervention position. Test remains untouched until the analysis is frozen.
 
+Capture accepts an explicit `train`, `validation`, or `test` split. Test capture fails closed unless `--allow-test-capture` is supplied after the analysis is frozen. Vector extraction rejects any activation metadata containing validation or test rows.
+
 Methods are difference in means, paired-delta PCA on `unsafe - safe`, and a predeclared ridge probe. Bootstrap stability resamples source groups while preserving contrastive pairs.
 
 ## Intervention
@@ -29,5 +31,13 @@ Sweep every fourth layer and coefficients `{1,2,5,10,20}`. Record target suppres
 ## Reproducibility
 
 Models use immutable Hugging Face revisions through TransformerLens Bridge v3 compatibility mode. Every run records config, seed, model revision, dataset SHA-256, Git SHA, dirty flag and diff hash, Python and package versions, Torch/CUDA facts, device, split, layer, capture site, metrics, and artifact paths.
+
+`python -m scripts.verify_environment <config>` enforces immutable model revisions and exact declared runtime versions before capture. Public inputs are commit- and hash-pinned in `datasets/manifests/source_corpora.json`; `datasets/manifests/reconstruction.json` lists the ignored restricted bundle and the commands that verify it.
+
+The annotation-artifact gate measures exact duplicates, concentrated prefixes/suffixes and five-grams, encoding damage, lexical cues, and near duplicates by archetype and polarity. The strict motivated-reasoning gate is:
+
+```powershell
+python -m scripts.audit_annotation_artifacts data/working/deceptive_reasoning/candidates.jsonl --strict-archetype motivated_reasoning
+```
 
 Swahili transfer starts only after the English corpus and RQ1 protocol are frozen. Conditional triggering remains a stretch stage.

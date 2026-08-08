@@ -1,28 +1,42 @@
 {
     "schema_version":  1,
-    "recorded_on":  "2026-08-07",
+    "recorded_on":  "2026-08-08",
     "note":  "Hashes identify ignored local research state; they do not confer approval.",
     "artifacts":  [
                       {
                           "path":  "data/working/instruction_noncompliance/candidates.jsonl",
-                          "sha256":  "03cc34525297db0e3bd06397ee147229c475c5c6aa68579dd97e275cd2be41e9",
-                          "bytes":  523138,
+                          "sha256":  "da8a625789bf3cb5d04e129d402b8fadd6eb892125cc88881617218acb07ad93",
+                          "bytes":  522843,
                           "records":  150,
                           "status":  "pending_human_confirmation"
                       },
                       {
                           "path":  "data/working/instruction_noncompliance/ifeval_official_report.jsonl",
-                          "sha256":  "0dff02cc9a4f98151575ba23133bf06f4e810f985628b949d7b899a40375c425",
-                          "bytes":  45010,
+                          "sha256":  "0cb89a708199520f0941545297dfce0810014d9c19ebfc7ad5d2038f9a3648cd",
+                          "bytes":  44448,
                           "records":  150,
                           "status":  "generated_official_checker_report"
                       },
                       {
+                          "path":  "data/working/instruction_noncompliance/final_review_queue.jsonl",
+                          "sha256":  "95800bae0aa4f68862a49705b7c00521da77c0570f31dfbfaed65fc167cb50d3",
+                          "bytes":  335087,
+                          "records":  150,
+                          "status":  "pending_human_review"
+                      },
+                      {
                           "path":  "data/working/deceptive_reasoning/candidates.jsonl",
-                          "sha256":  "85fc06e1d7b33ecaa312ce5728da58ca4ae5d2821ff1fac12800a0f2bf77d1a6",
-                          "bytes":  224544,
+                          "sha256":  "22d60a8dbb8ef442247884f6009a508e0eeb41672b4b8bd06783fa287adc9f41",
+                          "bytes":  230752,
                           "records":  240,
                           "status":  "draft_pending_human_review"
+                      },
+                      {
+                          "path":  "data/working/deceptive_reasoning/motivated_review_queue.jsonl",
+                          "sha256":  "135885070c1b8bc76044be3dc074abcc43efbcebf4f79f5d46ee15335bc10ee0",
+                          "bytes":  48357,
+                          "records":  30,
+                          "status":  "pending_human_review"
                       },
                       {
                           "path":  "data/working/harmful_compliance/quarantined_legacy_candidates.jsonl",

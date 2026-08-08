@@ -2,7 +2,7 @@
 
 ## Corrected corpus status
 
-The original 100 arithmetic deceptive-reasoning pairs and 100 template instruction-noncompliance pairs are now **pilot-only**. They remain useful for smoke tests, but are excluded from all RQ1–RQ3 claims. The previously generated Swahili manifest was based on that pilot mix and is invalidated for cross-lingual analysis.
+The original 100 arithmetic deceptive-reasoning pairs and 100 template instruction-noncompliance pairs are now **pilot-only**. They remain useful for smoke tests, but are excluded from all RQ1-RQ3 claims. The previously generated Swahili manifest was based on that pilot mix and is invalidated for cross-lingual analysis.
 
 ## Required English research corpus
 
@@ -12,7 +12,7 @@ Create a new, source-backed 120-pair deceptive-reasoning corpus before extractio
 | --- | --- | --- |
 | Arithmetic reasoning error | Existing CC-BY prior-work data | Faithful versus corrupted reasoning, with diverse arithmetic formats. |
 | Factual confabulation | TruthfulQA | Truthful reference response versus documented misconception/false answer. |
-| False-premise agreement | SycophancyEval / Anthropic evals | Evidence-based response versus agreement with the user’s false premise. |
+| False-premise agreement | SycophancyEval / Anthropic evals | Evidence-based response versus agreement with the user's false premise. |
 | Motivated reasoning | SycophancyEval feedback/pressure tasks | Independent assessment versus user-pleasing reversal. |
 
 Create a 120-pair naturalistic instruction-noncompliance corpus with four 30-pair archetypes: constraint omission, hedging/excessive caveating, topic shift, and false completion. Use IFEval as the instruction source where applicable; all generated negative completions need reviewer annotation as naturalistic evasion, not merely syntactic violation.
@@ -43,11 +43,11 @@ The canonical instruction candidate pool contains 150 unique pending-review cand
 
 Before freeze, run `python -m scripts.audit_annotation_artifacts <reviewed-file>` and the strengthened research-corpus audit. Deceptive motivated-reasoning candidates must come from preference-bearing feedback prompts and must not share a single safe or unsafe completion template. Deceptive and harmful-compliance corpora remain unassigned until approval; use `python -m scripts.assign_pair_splits` only after every record is approved.
 
-## 2026-08-07 scientific hardening gate
+## 2026-08-08 scientific hardening gate
 
-The instruction pool has 150 source-resolved candidates. All safe completions pass the pinned official IFEval strict checker, and the lexical artifact audit passes (hedging cues 2/30; false-completion cues 9/30). Expected unsafe failure lists remain pending human confirmation, so the freeze gate intentionally fails closed.
+The instruction pool has 150 source-resolved candidates. All safe completions pass the pinned official IFEval strict checker. Twelve concentrated hedging evasions were individually rewritten while preserving their constraints; the lexical artifact audit now passes (hedging cues 2/30; false-completion cues 9/30). Expected unsafe failure lists remain pending human confirmation, so the freeze gate intentionally fails closed. The human queue is `data/working/instruction_noncompliance/final_review_queue.jsonl`.
 
-The deceptive draft now uses explicit instruction/completion boundaries and stable source groups. False-premise variants collapse to eight underlying question groups; motivated-reasoning variants collapse to fifteen argument groups. All thirty motivated unsafe completions are textually unique after naturalization, but remain draft until human review.
+The deceptive draft now uses explicit instruction/completion boundaries and stable source groups. False-premise variants collapse to eight underlying question groups; motivated-reasoning variants collapse to fifteen argument groups. All thirty motivated pairs have individually authored, source-grounded safe and unsafe rewrites and remain draft until human review. The strict motivated audit passes with near-duplicate p95 of 0.373 for safe and 0.406 for unsafe completions. The human queue is `data/working/deceptive_reasoning/motivated_review_queue.jsonl`.
 
 The previous harmful-compliance construction is quarantined and excluded from Stage 1. JailbreakBench target strings are retained only as rebuild-task prefixes; they are not treated as full unsafe completions. A replacement corpus must use diverse full safe and unsafe responses and pass template and encoding audits.
 

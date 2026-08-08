@@ -1,18 +1,26 @@
 {
   "ifeval_input_data.jsonl": {
-    "sha256": "67ffeee0fcb87c317c5b08a2de85557b4a7e96ada6178aa645b4954fe4b53d49",
-    "url": "https://raw.githubusercontent.com/google-research/google-research/master/instruction_following_eval/data/input_data.jsonl"
+    "commit": "b24f2136e8ef405b900b5619760126304f190941",
+    "path": "instruction_following_eval/data/input_data.jsonl",
+    "repository": "google-research/google-research",
+    "sha256": "67ffeee0fcb87c317c5b08a2de85557b4a7e96ada6178aa645b4954fe4b53d49"
   },
   "sycophancy_answer.jsonl": {
-    "sha256": "3da2c2bbf685cf2c6cbfc6bf67449caad6fe1d56b67924087b3792ffba47bcc1",
-    "url": "https://raw.githubusercontent.com/meg-tong/sycophancy-eval/main/datasets/answer.jsonl"
+    "commit": "9a1694221e3639887138f61deae344335eca6752",
+    "path": "datasets/answer.jsonl",
+    "repository": "meg-tong/sycophancy-eval",
+    "sha256": "3da2c2bbf685cf2c6cbfc6bf67449caad6fe1d56b67924087b3792ffba47bcc1"
   },
   "sycophancy_feedback.jsonl": {
-    "sha256": "3687c5c335b41adf13bb6004fe9e3eff4067fb0457b4b225e88f55e76e18399f",
-    "url": "https://raw.githubusercontent.com/meg-tong/sycophancy-eval/main/datasets/feedback.jsonl"
+    "commit": "9a1694221e3639887138f61deae344335eca6752",
+    "path": "datasets/feedback.jsonl",
+    "repository": "meg-tong/sycophancy-eval",
+    "sha256": "3687c5c335b41adf13bb6004fe9e3eff4067fb0457b4b225e88f55e76e18399f"
   },
   "truthfulqa.csv": {
-    "sha256": "b8d8ef1e12f98b4f2a9f47abc9765da0640b182b6c5d9b92f0c1a1f2f1e02e5c",
-    "url": "https://raw.githubusercontent.com/sylinrl/TruthfulQA/main/TruthfulQA.csv"
+    "commit": "d71c110897f5d31c5d7f309e7bc316c152f6f031",
+    "path": "TruthfulQA.csv",
+    "repository": "sylinrl/TruthfulQA",
+    "sha256": "b8d8ef1e12f98b4f2a9f47abc9765da0640b182b6c5d9b92f0c1a1f2f1e02e5c"
   }
 }

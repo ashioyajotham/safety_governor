@@ -22,3 +22,16 @@ def test_control_tax_threshold_and_hub():
     assert conceptual_hub({0: .3, 4: .9}) == 4
     assert suppression(1.0, .2) == .8
     assert np.allclose(cosine_similarity(np.eye(2), np.eye(2)), [1., 1.])
+
+def test_hook_adapter_accepts_transformerlens_keyword():
+    from safety_governor.domain import InterventionSpec
+    from safety_governor.steering import make_hook
+
+    activation = np.zeros((1, 2, 2))
+    hook = make_hook(
+        np.ones(2),
+        InterventionSpec(layer=0, coefficient=1.0, token_mode="final_response_token"),
+        positions=[1],
+    )
+    changed = hook(activation, hook=object())
+    assert np.array_equal(changed[0, 1], np.ones(2))

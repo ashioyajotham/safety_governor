@@ -1,0 +1,44 @@
+{
+    "schema_version":  1,
+    "runs":  [
+                 {
+                     "run_id":  "capture-20260808T111128Z",
+                     "date":  "2026-08-08",
+                     "purpose":  "Pinned GPT-2 CPU backend and response-boundary smoke test",
+                     "model":  {
+                                   "name":  "openai-community/gpt2",
+                                   "revision":  "607a30d783dfa663caf39e06633721c8d4cfcd7e"
+                               },
+                     "runtime":  {
+                                     "python":  "3.13.5",
+                                     "torch":  "2.8.0+cpu",
+                                     "transformer-lens":  "3.1.0",
+                                     "transformers":  "4.57.0",
+                                     "device":  "cpu"
+                                 },
+                     "capture":  {
+                                     "dataset":  "datasets/fixtures/contrastive_en.jsonl",
+                                     "split":  "train",
+                                     "site":  "response_mean",
+                                     "layer":  0,
+                                     "pairs":  1
+                                 },
+                     "artifacts":  {
+                                       "manifest":  {
+                                                        "path":  "artifacts/capture-20260808T111128Z/manifest.json",
+                                                        "sha256":  "dd9636953fb4968e2a142a0e965a810fe4c55ae32faced8376b5661ec4b7a33d"
+                                                    },
+                                       "safe_activations":  {
+                                                                "path":  "artifacts/capture-20260808T111128Z/safe.npy",
+                                                                "sha256":  "207ceb73630daf3d3472f5cb0c5fe18044811b92bbe28efe5fcce5eb36bc77f8"
+                                                            },
+                                       "unsafe_activations":  {
+                                                                  "path":  "artifacts/capture-20260808T111128Z/unsafe.npy",
+                                                                  "sha256":  "26b4c98338885a34727d8a3f45f7886c24415f5e93f5a1ddb19fa70bc09d3b04"
+                                                              }
+                                   },
+                     "backend_steering_smoke":  "passed",
+                     "interpretation":  "Engineering smoke only; the single fixture pair provides no evidence about safety behavior or steering efficacy."
+                 }
+             ]
+}

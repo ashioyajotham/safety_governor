@@ -27,7 +27,7 @@ def add_vector(activation, vector, coefficient: float, token_mode: str, position
 
 
 def make_hook(vector, spec: InterventionSpec, *, positions=None, position_mask=None) -> Callable:
-    def hook(activation, _hook):
+    def hook(activation, hook=None):
         return add_vector(
             activation, vector, spec.coefficient, spec.token_mode,
             positions=positions, position_mask=position_mask,

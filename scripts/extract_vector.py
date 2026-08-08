@@ -11,6 +11,19 @@ from safety_governor.vectors import bootstrap_cosine, difference_in_means, paire
 METHODS = {"difference_in_means": difference_in_means, "paired_delta_pca": paired_delta_pca, "probe": probe_direction}
 
 
+def validate_fit_metadata(safe_metadata: dict, unsafe_metadata: dict) -> list[str]:
+    errors = []
+    for field in ("sample_ids", "splits", "source_group_ids", "token_mode", "layer"):
+        if safe_metadata.get(field) != unsafe_metadata.get(field):
+            errors.append(f"safe/unsafe activation metadata mismatch: {field}")
+    splits = set(safe_metadata.get("splits") or [])
+    if splits != {"train"}:
+        errors.append(f"vector fitting is train-only; found splits={sorted(splits)}")
+    groups = safe_metadata.get("source_group_ids")
+    if not groups or any(group is None for group in groups):
+        errors.append("vector fitting requires source_group_ids")
+    return errors
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--safe", required=True)
@@ -21,15 +34,10 @@ def main() -> None:
     args = parser.parse_args()
     safe, unsafe = load_matrix(args.safe), load_matrix(args.unsafe)
     safe_metadata, unsafe_metadata = load_metadata(args.safe), load_metadata(args.unsafe)
-    for field in ("sample_ids", "splits", "source_group_ids", "token_mode", "layer"):
-        if safe_metadata.get(field) != unsafe_metadata.get(field):
-            raise SystemExit(f"safe/unsafe activation metadata mismatch: {field}")
-    splits = set(safe_metadata.get("splits") or [])
-    if splits != {"train"}:
-        raise SystemExit(f"vector fitting is train-only; found splits={sorted(splits)}")
+    errors = validate_fit_metadata(safe_metadata, unsafe_metadata)
+    if errors:
+        raise SystemExit("Activation metadata invalid:\n- " + "\n- ".join(errors))
     group_ids = safe_metadata.get("source_group_ids")
-    if not group_ids or any(group_id is None for group_id in group_ids):
-        raise SystemExit("vector fitting requires source_group_ids")
     extractor = METHODS[args.method]
     unique_groups = sorted(set(group_ids))
     safe_grouped = np.stack([safe[[i for i, group in enumerate(group_ids) if group == target]].mean(axis=0) for target in unique_groups])

@@ -33,8 +33,8 @@
                         "sha256":  "490487ceebd8fceb68e9c1015f107885211d65a6d2854a5fb9abfc712bafa9f0",
                         "disposition":  "promoted",
                         "destination":  "data/working/deceptive_reasoning/candidates.jsonl",
-                        "note":  "Canonical working corpus after explicit-boundary source-group and motivated-template remediation; review state remains draft.",
-                        "destination_sha256":  "85fc06e1d7b33ecaa312ce5728da58ca4ae5d2821ff1fac12800a0f2bf77d1a6"
+                        "note":  "Canonical working corpus after explicit-boundary source-group remediation and individually authored motivated-reasoning rewrites; review state remains draft.",
+                        "destination_sha256":  "22d60a8dbb8ef442247884f6009a508e0eeb41672b4b8bd06783fa287adc9f41"
                     },
                     {
                         "original_path":  "data/raw/research_corpus/ifeval_final_gap_queue.jsonl",
