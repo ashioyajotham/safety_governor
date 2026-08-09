@@ -50,6 +50,7 @@ data/raw/sources/            immutable local upstream snapshots (mostly ignored)
 data/working/                mutable candidate, review, quarantine, and report data (ignored)
 data/archive/                superseded local artifacts (ignored; hashes tracked)
 docs/                        protocol, governance, curation, and research notebook material
+docs/notebooks/review/       local/Colab human-review workbench (thin UI over tested core)
 tests/                       deterministic scientific and engineering checks
 artifacts/                   ignored run manifests, activation caches, and vectors
 ```
@@ -73,5 +74,15 @@ python -m scripts.validate_ifeval_candidates data/working/instruction_noncomplia
 ```
 
 It intentionally fails until every mechanical failure declaration and semantic contrast is human-confirmed.
+
+The current human gate is conducted with the provider-neutral
+[`IFEval review workbench`](docs/notebooks/review/ifeval_human_review_workbench.ipynb).
+It reviews immutable 82-row mechanical, 8-row repaired, and 60-row semantic queues;
+stores decisions in a separate append-only session; and locks all semantic judgments
+before diagnostic model scores can be imported. Build its self-verifying input bundle with:
+
+```powershell
+python -m scripts.prepare_review_workbench_bundle --output data/working/instruction_noncompliance/review_workbench_bundle.zip
+```
 
 The full project proposal is retained locally as `ilina_jrf_project.docx.pdf` and governs research scope, metrics, and timeline.

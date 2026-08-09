@@ -12,6 +12,14 @@
 | `datasets/frozen/` | Future approved experiment inputs | Governance/licence dependent |
 | `artifacts/` | Captures, vectors, and run manifests | Ignored |
 
+The tracked review notebook lives at
+`docs/notebooks/review/ifeval_human_review_workbench.ipynb`. Its generated bundle,
+extracted immutable sources, session checkpoints, imported exports, and provider audit
+outputs remain under `data/working/instruction_noncompliance/` and are ignored. The
+tracked `scripts/build_review_workbench_notebook.py` deterministically rebuilds the
+notebook; review policy itself lives in the tested package module rather than notebook
+cell state.
+
 Working filenames describe state rather than tools or chronology. Provider/model identifiers belong in annotation provenance or semantic-audit run manifests, never in experiment inputs.
 
 The materialization boundary copies only research identifiers, instruction, completion, polarity, source group, split, provenance citation, and approval state. Review notes and generation traces remain outside the transcript.
