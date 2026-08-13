@@ -78,8 +78,9 @@ It intentionally fails until every mechanical failure declaration and semantic c
 The current human gate is conducted with the provider-neutral
 [`IFEval review workbench`](docs/notebooks/review/ifeval_human_review_workbench.ipynb).
 It reviews immutable 82-row mechanical, 8-row repaired, and 60-row semantic queues;
-stores decisions in a separate append-only session; and locks all semantic judgments
-before diagnostic model scores can be imported. Build its self-verifying input bundle with:
+shows only the active archetype's tri-state rubric, stores decisions in a separate
+append-only session, and locks all semantic judgments before diagnostic model scores
+can be imported. Build its self-verifying input bundle with:
 
 ```powershell
 python -m scripts.prepare_review_workbench_bundle --output data/working/instruction_noncompliance/review_workbench_bundle.zip

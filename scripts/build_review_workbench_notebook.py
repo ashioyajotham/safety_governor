@@ -30,18 +30,32 @@ from pathlib import Path
 IN_COLAB = 'google.colab' in sys.modules
 if IN_COLAB:
     from google.colab import files
+    upload_directory = Path.cwd().resolve()
     uploaded = files.upload()
-    BUNDLE_ZIP = Path(next(iter(uploaded)))
-    with zipfile.ZipFile(BUNDLE_ZIP) as z:
-        bundle_manifest = json.loads(z.read('bundle_manifest.json'))
+    uploaded_name = next(iter(uploaded))
+    BUNDLE_ZIP = (upload_directory / uploaded_name).resolve()
+else:
+    REPO_ROOT = Path.cwd().resolve()
+    BUNDLE_ZIP = REPO_ROOT / 'data/working/instruction_noncompliance/review_workbench_bundle.zip'
+
+if not BUNDLE_ZIP.is_file():
+    raise FileNotFoundError(
+        f'Review bundle not found at {BUNDLE_ZIP}. '
+        'Upload review_workbench_bundle.zip again if the Colab runtime restarted.'
+    )
+try:
+    with zipfile.ZipFile(BUNDLE_ZIP) as archive:
+        bundle_manifest = json.loads(archive.read('bundle_manifest.json'))
+except (zipfile.BadZipFile, KeyError, json.JSONDecodeError) as exc:
+    raise ValueError('The uploaded file is not a valid review workbench bundle.') from exc
+if bundle_manifest.get('schema_version') != 2:
+    raise ValueError('This notebook requires a v2 review bundle. Rebuild or re-upload the bundle.')
+
+if IN_COLAB:
     !git clone -q https://github.com/ashioyajotham/safety_governor.git /content/safety_governor
     %cd /content/safety_governor
     !git checkout -q {bundle_manifest['code_revision']}
     !pip -q install -r requirements-review.txt
-else:
-    REPO_ROOT = Path.cwd()
-    BUNDLE_ZIP = REPO_ROOT / 'data/working/instruction_noncompliance/review_workbench_bundle.zip'
-    bundle_manifest = None
 """),
     md("""## 2. Checkpoint location and verified resume
 
@@ -49,26 +63,25 @@ Each session has a UUID. Source hashes and immutable row fingerprints are verifi
 """),
     code("""from safety_governor.review_workbench import ReviewSession, extract_bundle
 
+REVIEW_INPUT_ID = bundle_manifest['review_input_id']
 if IN_COLAB:
     from google.colab import drive
     drive.mount('/content/drive')
-    SESSION_ROOT = Path('/content/drive/MyDrive/safety_governor_review')
-    BUNDLE_DIR = Path('/content/review_bundle')
+    SESSION_ROOT = Path('/content/drive/MyDrive/safety_governor_review') / REVIEW_INPUT_ID
+    BUNDLE_DIR = Path('/content/review_bundles') / REVIEW_INPUT_ID
 else:
-    SESSION_ROOT = Path('data/working/instruction_noncompliance/review_sessions')
-    BUNDLE_DIR = Path('data/working/instruction_noncompliance/review_bundle')
+    SESSION_ROOT = Path('data/working/instruction_noncompliance/review_sessions') / REVIEW_INPUT_ID
+    BUNDLE_DIR = Path('data/working/instruction_noncompliance/review_bundles') / REVIEW_INPUT_ID
 
 if not (BUNDLE_DIR / 'bundle_manifest.json').exists():
     extract_bundle(BUNDLE_ZIP, BUNDLE_DIR)
-SESSION_ROOT.mkdir(parents=True, exist_ok=True)
-existing = sorted(path for path in SESSION_ROOT.iterdir() if path.is_dir())
-SESSION_DIR = existing[-1] if existing else SESSION_ROOT / 'current'
+SESSION_DIR = SESSION_ROOT / 'current'
 session = ReviewSession(BUNDLE_DIR, SESSION_DIR)
 session.manifest, session.progress()
 """),
     md("""## 3. Human review
 
-Review the mechanical and repaired queues, then the semantic queue. Annotation text is read-only. **Save & Next** writes an atomic checkpoint and append-only event. Defer remains pending; rejection is an explicit terminal decision and also needs a rationale.
+Review the mechanical and repaired queues, then the semantic queue. Annotation text is read-only and each row shows only its governing rubric. Every rubric answer is explicitly Unanswered, Yes, or No. **Save & Next** writes an atomic checkpoint and append-only event. Approve and Reject require a substantive rationale; resolved mechanical rows also require a declared-failure verdict.
 """),
     code("""from safety_governor.review_widgets import launch
 ui = launch(session)
@@ -91,8 +104,9 @@ else:
 The score file must contain exactly the 60 blinded task IDs and the requested 1–5 integer dimensions. Record the provider and immutable model revision for auditability. Provider information remains in the review manifest and never enters experiment text.
 """),
     code("""if IN_COLAB:
+    score_directory = Path.cwd().resolve()
     score_upload = files.upload()
-    SCORES_PATH = Path(next(iter(score_upload)))
+    SCORES_PATH = (score_directory / next(iter(score_upload))).resolve()
 else:
     SCORES_PATH = Path('PATH/TO/semantic_scores.jsonl')
 

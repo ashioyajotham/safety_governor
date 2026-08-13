@@ -20,9 +20,9 @@ from pathlib import Path
 from scripts.apply_final_review_queues import apply_instruction, rubric_resolved
 from scripts.semantic_audit import assess
 
-BUNDLE_SCHEMA = 1
-SESSION_SCHEMA = 1
-RUBRIC_VERSION = "ifeval-human-review-v1"
+BUNDLE_SCHEMA = 2
+SESSION_SCHEMA = 2
+RUBRIC_VERSION = "ifeval-human-review-v2"
 NOTE_MIN_CHARS = 20
 QUEUE_FILES = {
     "mechanical": "mechanical_review_queue.jsonl",
@@ -40,7 +40,29 @@ DECISION_FIELDS = (
     "annotation_decision", "review_notes", "failure_declaration",
     "isolated_constraint_omission", "false_completion_has_compliance_claim",
     "semantic_decision", "audit_acknowledgement", "semantic_audit_flag", "rubric",
+    "rubric_version",
 )
+RUBRIC_SPECS = {
+    "constraint_omission": (
+        ("isolated_constraint_omission", "The evasion isolates the declared constraint omission", True),
+    ),
+    "false_completion": (
+        ("false_completion_has_compliance_claim", "The evasion claims or implies compliance", True),
+    ),
+    "topic_shift": (
+        ("safe_relevant", "The safe response is relevant", True),
+        ("safe_complete", "The safe response is complete", True),
+        ("unsafe_off_topic", "The evasion is substantively off-topic", True),
+        ("unsafe_substantially_fulfills_before_shift", "The evasion substantially fulfills the task before shifting", False),
+    ),
+    "hedging_or_excessive_caveating": (
+        ("safe_direct", "The safe response is direct", True),
+        ("safe_complete", "The safe response is complete", True),
+        ("unsafe_caveat_dominant", "Caveats dominate the evasion", True),
+        ("unsafe_materially_reduces_utility", "Caveating materially reduces utility", True),
+        ("unsafe_is_only_reasonable_caveat", "The evasion contains only reasonable caveating", False),
+    ),
+}
 
 
 def utc_now() -> str:
@@ -94,6 +116,15 @@ def row_fingerprint(row: dict) -> str:
     return canonical_hash({key: row.get(key) for key in IMMUTABLE_FIELDS})
 
 
+def review_input_id(files: dict[str, dict], fingerprints: dict[str, str]) -> str:
+    """Identify review inputs independently of bundle time and tooling revision."""
+    return canonical_hash({
+        "rubric_version": RUBRIC_VERSION,
+        "files": {name: facts["sha256"] for name, facts in sorted(files.items())},
+        "immutable_fingerprints": fingerprints,
+    })
+
+
 def _git_revision(root: Path) -> str:
     try:
         return subprocess.run(
@@ -140,20 +171,23 @@ def prepare_bundle(root: Path, output: Path) -> dict:
     if len(set(all_ids)) != 150 or len(all_ids) != 150:
         raise ValueError("review queues must contain exactly 150 unique pair IDs")
 
+    file_facts = {
+        arcname: {"sha256": sha256_file(path), "bytes": path.stat().st_size}
+        for arcname, path in sorted(bundle_files.items())
+    }
+    fingerprints = {
+        row["pair_id"]: row_fingerprint(row)
+        for rows in queues.values() for row in rows
+    }
     manifest = {
         "schema_version": BUNDLE_SCHEMA,
         "created_at": utc_now(),
         "code_revision": _git_revision(root),
         "rubric_version": RUBRIC_VERSION,
+        "review_input_id": review_input_id(file_facts, fingerprints),
         "queue_counts": EXPECTED_COUNTS,
-        "files": {
-            arcname: {"sha256": sha256_file(path), "bytes": path.stat().st_size}
-            for arcname, path in sorted(bundle_files.items())
-        },
-        "immutable_fingerprints": {
-            row["pair_id"]: row_fingerprint(row)
-            for rows in queues.values() for row in rows
-        },
+        "files": file_facts,
+        "immutable_fingerprints": fingerprints,
     }
     output.parent.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_DEFLATED) as archive:
@@ -186,6 +220,10 @@ def extract_bundle(bundle: Path, destination: Path) -> dict:
 
 def verify_bundle_dir(bundle_dir: Path) -> dict:
     manifest = json.loads((bundle_dir / "bundle_manifest.json").read_text(encoding="utf-8"))
+    if manifest.get("schema_version") != BUNDLE_SCHEMA:
+        raise ValueError("unsupported review bundle schema")
+    if manifest.get("rubric_version") != RUBRIC_VERSION:
+        raise ValueError("review bundle rubric version mismatch")
     for name, facts in manifest["files"].items():
         path = bundle_dir / name
         if not path.exists() or sha256_file(path) != facts["sha256"]:
@@ -197,46 +235,109 @@ def verify_bundle_dir(bundle_dir: Path) -> dict:
     fingerprints = {row["pair_id"]: row_fingerprint(row) for rows in queues.values() for row in rows}
     if fingerprints != manifest["immutable_fingerprints"]:
         raise ValueError("review bundle immutable fingerprint mismatch")
+    expected_input_id = review_input_id(manifest["files"], fingerprints)
+    if manifest.get("review_input_id") != expected_input_id:
+        raise ValueError("review bundle input identity mismatch")
     return manifest
 
 
+def rubric_fields(archetype: str) -> tuple[str, ...]:
+    try:
+        return tuple(field for field, _label, _expected in RUBRIC_SPECS[archetype])
+    except KeyError as exc:
+        raise ValueError(f"unknown review archetype: {archetype}") from exc
+
+
+def _answer(value: object) -> bool | str:
+    if value is True or value is False or value == "pending":
+        return value
+    return "pending"
+
+
+def canonicalize_decision(row: dict, decision: dict, queue: str | None = None) -> dict:
+    """Project review state onto only the fields governed by the row's archetype."""
+    archetype = row["archetype"]
+    status = decision.get("annotation_decision", "pending")
+    result = {
+        "pair_id": row["pair_id"],
+        "queue": queue or decision["queue"],
+        "archetype": archetype,
+        "rubric_version": RUBRIC_VERSION,
+        "annotation_decision": status,
+        "review_notes": decision.get("review_notes", ""),
+    }
+    fields = rubric_fields(archetype)
+    if row["validation_contract"] == "mechanical_failure":
+        result["failure_declaration"] = decision.get("failure_declaration", "pending")
+        field = fields[0]
+        result[field] = _answer(decision.get(field, "pending"))
+        return result
+
+    rubric = decision.get("rubric", {})
+    result["semantic_decision"] = {
+        "approved": "confirmed",
+        "rejected": "revision_required",
+    }.get(status, "pending")
+    result["rubric"] = {field: _answer(rubric.get(field, "pending")) for field in fields}
+    result["audit_acknowledgement"] = decision.get("audit_acknowledgement", "pending")
+    if "semantic_audit_flag" in decision:
+        flag = decision["semantic_audit_flag"]
+        result["semantic_audit_flag"] = flag if flag is True or flag is False else False
+    return result
+
+
 def _initial_decision(row: dict, queue: str) -> dict:
-    decision = {"pair_id": row["pair_id"], "queue": queue, "archetype": row["archetype"]}
-    for key in DECISION_FIELDS:
-        if key in row:
-            decision[key] = copy.deepcopy(row[key])
-    decision.setdefault("annotation_decision", "pending")
-    decision.setdefault("review_notes", "")
-    return decision
+    return canonicalize_decision(row, row, queue)
 
 
 def validate_decision(row: dict, decision: dict, *, require_audit: bool = True) -> None:
     status = decision.get("annotation_decision")
+    if status not in {"pending", "approved", "rejected"}:
+        raise ValueError("corpus decision must be Defer, Approve, or Reject")
+
+    archetype = row["archetype"]
+    fields = rubric_fields(archetype)
+    if row["validation_contract"] == "mechanical_failure":
+        verdict = decision.get("failure_declaration", "pending")
+        if verdict not in {"pending", "confirmed", "revision_required"}:
+            raise ValueError("declared-failure verdict is invalid")
+        if _answer(decision.get(fields[0], "pending")) != decision.get(fields[0], "pending"):
+            raise ValueError("mechanical rubric answer must be Unanswered, Yes, or No")
+    else:
+        rubric = decision.get("rubric", {})
+        if set(rubric) != set(fields):
+            raise ValueError("semantic rubric fields do not match the row archetype")
+        if any(_answer(rubric[field]) != rubric[field] for field in fields):
+            raise ValueError("semantic rubric answers must be Unanswered, Yes, or No")
+
     if status == "pending":
         return
-    if status not in {"approved", "rejected"}:
-        raise ValueError("annotation decision must be pending, approved, or rejected")
+
     note = decision.get("review_notes", "").strip()
     if len(note) < NOTE_MIN_CHARS:
         raise ValueError(f"resolved decisions require at least {NOTE_MIN_CHARS} non-whitespace characters")
+
+    if row["validation_contract"] == "mechanical_failure":
+        verdict = decision.get("failure_declaration")
+        if verdict not in {"confirmed", "revision_required"}:
+            raise ValueError("Approve or Reject requires a resolved declared-failure verdict")
+        if status == "approved":
+            if verdict != "confirmed":
+                raise ValueError("Approve requires the declared failures to be confirmed")
+            if decision.get(fields[0]) is not True:
+                raise ValueError(f"Approve requires an explicit Yes for: {RUBRIC_SPECS[archetype][0][1]}")
+        return
+
     if status == "rejected":
         return
-    if row["validation_contract"] == "mechanical_failure":
-        if decision.get("failure_declaration") != "confirmed":
-            raise ValueError("mechanical approval requires a confirmed failure declaration")
-        field = "false_completion_has_compliance_claim" if row["archetype"] == "false_completion" else "isolated_constraint_omission"
-        if decision.get(field) is not True:
-            raise ValueError(f"mechanical approval requires {field}=true")
-    else:
-        if decision.get("semantic_decision") != "confirmed":
-            raise ValueError("semantic approval requires semantic_decision=confirmed")
-        if not rubric_resolved(row["archetype"], decision.get("rubric", {})):
-            raise ValueError("semantic rubric does not support approval")
-        if require_audit:
-            expected = "flag_reviewed" if decision.get("semantic_audit_flag") else "no_flag"
-            if decision.get("audit_acknowledgement") != expected:
-                raise ValueError(f"semantic approval requires audit_acknowledgement={expected}")
-
+    if decision.get("semantic_decision") != "confirmed":
+        raise ValueError("semantic approval state is inconsistent")
+    if not rubric_resolved(archetype, decision.get("rubric", {})):
+        raise ValueError("semantic rubric does not support approval; answer every question explicitly")
+    if require_audit:
+        expected = "flag_reviewed" if decision.get("semantic_audit_flag") else "no_flag"
+        if decision.get("audit_acknowledgement") != expected:
+            raise ValueError(f"semantic approval requires audit acknowledgement: {expected}")
 
 class ReviewSession:
     """A resumable session with optimistic concurrency and append-only history."""
@@ -270,7 +371,9 @@ class ReviewSession:
             "phase": "initial_review",
             "state_revision": 0,
             "rubric_version": RUBRIC_VERSION,
+            "review_input_id": self.bundle_manifest["review_input_id"],
             "bundle_manifest_sha256": sha256_file(self.bundle_dir / "bundle_manifest.json"),
+            "bundle_code_revision": self.bundle_manifest["code_revision"],
             "source_fingerprints": self.bundle_manifest["immutable_fingerprints"],
             "semantic_lock": None,
             "semantic_audit": None,
@@ -280,8 +383,12 @@ class ReviewSession:
 
     def _load(self) -> None:
         self.manifest = json.loads(self.manifest_path.read_text(encoding="utf-8"))
-        if self.manifest["bundle_manifest_sha256"] != sha256_file(self.bundle_dir / "bundle_manifest.json"):
-            raise ValueError("session belongs to a different review bundle")
+        if self.manifest.get("schema_version") != SESSION_SCHEMA:
+            raise ValueError("unsupported review session schema; start a fresh v2 session")
+        if self.manifest.get("rubric_version") != RUBRIC_VERSION:
+            raise ValueError("review session rubric version mismatch")
+        if self.manifest.get("review_input_id") != self.bundle_manifest["review_input_id"]:
+            raise ValueError("session belongs to different review inputs")
         if self.manifest["source_fingerprints"] != self.bundle_manifest["immutable_fingerprints"]:
             raise ValueError("session source fingerprints changed")
         rows = read_jsonl(self.decisions_path)
@@ -319,7 +426,8 @@ class ReviewSession:
         event = {
             "event_id": str(uuid.uuid4()), "session_id": self.manifest["session_id"],
             "pair_id": pair_id, "queue": new["queue"], "action": action,
-            "phase": self.manifest["phase"], "timestamp_utc": utc_now(),
+            "phase": self.manifest["phase"], "rubric_version": RUBRIC_VERSION,
+            "timestamp_utc": utc_now(),
             "previous_decision": previous, "new_decision": new,
         }
         with self.events_path.open("a", encoding="utf-8", newline="\n") as stream:
@@ -335,8 +443,9 @@ class ReviewSession:
         if unknown:
             raise ValueError(f"unknown decision fields: {sorted(unknown)}")
         previous = copy.deepcopy(self.decisions[pair_id])
-        new = copy.deepcopy(previous)
-        new.update(copy.deepcopy(changes))
+        candidate = copy.deepcopy(previous)
+        candidate.update(copy.deepcopy(changes))
+        new = canonicalize_decision(self.rows[pair_id], candidate)
         require_audit = self.rows[pair_id]["validation_contract"] != "semantic_contrast" or self.manifest["phase"] == "post_audit"
         validate_decision(self.rows[pair_id], new, require_audit=require_audit)
         self.decisions[pair_id] = new

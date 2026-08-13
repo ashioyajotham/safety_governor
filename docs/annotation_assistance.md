@@ -29,10 +29,16 @@ every file hash, immutable row fingerprint, queue count, rubric version, and Git
 revision. Resume fails if any source text or validation evidence has changed.
 
 Human decisions live outside those source rows. Each session has an anonymous UUID,
-atomic decision checkpoints, optimistic state revisions, and an append-only
-`review_events.jsonl`. Approval and rejection require at least 20 non-whitespace
-characters of rationale. Approval additionally requires the relevant mechanical or
-semantic rubric. Rejection never inherits approval-only requirements.
+atomic decision checkpoints, optimistic state revisions, and an append-only review
+event log. Approval and rejection require at least 20 non-whitespace characters of
+rationale. The interface creates only the active archetype's rubric, and each answer
+remains explicitly pending until the reviewer selects Yes or No.
+
+For mechanical rows, the corpus decision and declared-failure verdict are independent:
+a real checker failure can still accompany rejection for poor naturalism or a confound.
+Every resolved mechanical row requires that verdict; approval additionally requires a
+confirmed verdict and an explicit Yes on its behaviour question. Semantic rejection
+does not inherit approval-only rubric or audit requirements.
 
 Semantic review is human-first: all 60 initial judgments must be resolved and hashed
 before diagnostic scores can be imported. Unflagged pairs receive `no_flag`; a flagged
