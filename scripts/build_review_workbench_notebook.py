@@ -88,7 +88,7 @@ ui = launch(session)
 """),
     md("""## 4. Lock semantic judgments and export blinded audit tasks
 
-Use the lock button only after all 60 semantic rows have an initial approved/rejected decision. The resulting hash fixes those judgments before the model-assisted diagnostic is revealed. After locking, this cell exports only blinded A/B tasks—not the private mapping.
+Use the lock button only after all 60 semantic rows have an initial approved/rejected decision. The resulting hash fixes those judgments before the model-assisted diagnostic is revealed. After locking, this cell exports only blinded A/B tasksâ€”not the private mapping.
 """),
     code("""# The UI lock button calls this safely. This cell only exports tasks after a lock exists.
 if not session.manifest.get('semantic_lock'):
@@ -101,7 +101,7 @@ else:
 """),
     md("""## 5. Import provider-neutral diagnostic scores
 
-The score file must contain exactly the 60 blinded task IDs and the requested 1–5 integer dimensions. Record the provider and immutable model revision for auditability. Provider information remains in the review manifest and never enters experiment text.
+The score file must contain exactly the 60 blinded task IDs and the requested 1â€“5 integer dimensions. Record the provider and immutable model revision for auditability. Provider information remains in the review manifest and never enters experiment text.
 """),
     code("""if IN_COLAB:
     score_directory = Path.cwd().resolve()
@@ -110,15 +110,25 @@ The score file must contain exactly the 60 blinded task IDs and the requested 1�
 else:
     SCORES_PATH = Path('PATH/TO/semantic_scores.jsonl')
 
-PROVIDER = 'provider-name'
-MODEL_REVISION = 'immutable-model-revision'
-# Uncomment after setting the three values above:
-# run = session.attach_audit(SCORES_PATH, PROVIDER, MODEL_REVISION, session.revision)
-# run
+PROVIDER = 'human-review'
+MODEL_REVISION = 'manual-audit-v1'
+if session.manifest.get('semantic_audit'):
+    updated = dict(session.manifest['semantic_audit'])
+    updated['provider'] = PROVIDER
+    updated['model_revision'] = MODEL_REVISION
+    updated['provenance_updated_at'] = session.manifest.get('semantic_audit', {}).get('imported_at')
+    session.manifest['semantic_audit'] = updated
+    session.manifest['state_revision'] += 1
+    if hasattr(session, '_persist'):
+        session._persist()
+    run = updated
+else:
+    run = session.attach_audit(SCORES_PATH, PROVIDER, MODEL_REVISION, session.revision)
+run
 """),
     md("""## 6. Flagged re-review
 
-Relaunch the UI and filter the semantic queue. Unflagged approvals receive `no_flag` automatically. A flagged retained approval must be read again and explicitly acknowledged as `flag_reviewed`. The diagnostic does not alter approval decisions.
+Relaunch the UI and filter the semantic queue. After the audit is imported, any semantic row with a diagnostic flag must be reopened and acknowledged as `flag_reviewed`; unflagged rows should remain `no_flag`. The diagnostic does not alter approval decisions.
 """),
     code("""ui = launch(session)
 """),

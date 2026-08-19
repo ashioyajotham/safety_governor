@@ -497,6 +497,23 @@ class ReviewSession:
         self._persist()
         return lock
 
+    def update_semantic_audit_provenance(self, provider: str, model_revision: str, expected_revision: int) -> dict:
+        self._assert_revision(expected_revision)
+        audit = self.manifest.get("semantic_audit")
+        if not audit:
+            raise ValueError("semantic audit must be attached before provenance can be updated")
+        if not provider.strip() or not model_revision.strip():
+            raise ValueError("provider and immutable model revision are required")
+        updated = copy.deepcopy(audit)
+        updated["provider"] = provider
+        updated["model_revision"] = model_revision
+        updated["provenance_updated_at"] = utc_now()
+        self.manifest["semantic_audit"] = updated
+        _atomic_json(self.session_dir / "semantic_audit_run_manifest.json", updated)
+        self.manifest["state_revision"] += 1
+        self._persist()
+        return updated
+
     def attach_audit(self, scores_path: Path, provider: str, model_revision: str, expected_revision: int) -> dict:
         self._assert_revision(expected_revision)
         if not self.manifest.get("semantic_lock"):

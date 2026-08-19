@@ -85,7 +85,13 @@ def apply_instruction(candidates: list[dict], queue: list[dict]) -> list[dict]:
             if semantic not in {"confirmed", "revision_required"}:
                 raise ValueError(f"{row['pair_id']}: unresolved semantic decision")
             if acknowledgement not in {"no_flag", "flag_reviewed"}:
-                raise ValueError(f"{row['pair_id']}: semantic audit acknowledgement required")
+                expected_ack = (
+                    "flag_reviewed" if decision.get("semantic_audit_flag") else "no_flag"
+                )
+                raise ValueError(
+                    f"{row['pair_id']}: semantic audit acknowledgement required "
+                    f"(expected {expected_ack})"
+                )
             resolved = semantic == "confirmed" and rubric_resolved(
                 row["archetype"], decision.get("rubric", {})
             )
