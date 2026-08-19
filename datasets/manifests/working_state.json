@@ -1,84 +1,105 @@
 {
-    "schema_version":  2,
-    "recorded_on":  "2026-08-08",
-    "note":  "Hashes identify ignored local research state; they do not confer approval.",
-    "artifacts":  [
-                      {
-                          "records":  150,
-                          "path":  "data/working/instruction_noncompliance/candidates.jsonl",
-                          "sha256":  "4a55ecb1e31405d4ca2a310debc187e5600b04d1be1a0b78a8b71d8fe28057a2",
-                          "status":  "pending_human_archetype_review",
-                          "bytes":  527130
-                      },
-                      {
-                          "records":  150,
-                          "path":  "data/working/instruction_noncompliance/ifeval_official_report.jsonl",
-                          "sha256":  "13c0bdcdb0b8b5c6c3eed0b7016c3c74446b3580e9025583bd25e6e6e8f1b548",
-                          "status":  "generated_archetype_aware_checker_report",
-                          "bytes":  43880
-                      },
-                      {
-                          "records":  82,
-                          "path":  "data/working/instruction_noncompliance/mechanical_review_queue.jsonl",
-                          "sha256":  "a948190f6c6387c3ebfbca032f8d8d0c006a1bdc94582d97cb2e2c627ff24ef9",
-                          "status":  "pending_human_review",
-                          "bytes":  209437
-                      },
-                      {
-                          "records":  8,
-                          "path":  "data/working/instruction_noncompliance/repaired_review_queue.jsonl",
-                          "sha256":  "2edc49898ae736998d2127def90c0afc7d58b6be328a83f3ed8a45f0d8d80a54",
-                          "status":  "pending_human_rereview",
-                          "bytes":  16427
-                      },
-                      {
-                          "records":  60,
-                          "path":  "data/working/instruction_noncompliance/semantic_review_queue.jsonl",
-                          "sha256":  "6dd4c8b9aa75584e24b3de5cf8e0e092bca1be0598030cfa2c8679dd33033fce",
-                          "status":  "pending_human_semantic_review",
-                          "bytes":  120122
-                      },
-                      {
-                          "records":  60,
-                          "path":  "data/working/instruction_noncompliance/semantic_audit/tasks.jsonl",
-                          "sha256":  "f15d5880134e72ad3064e3d2fdabc6d39ccfdd607ad4fc139da32dbde62d61a7",
-                          "status":  "blinded_provider_neutral_audit_tasks",
-                          "bytes":  91706
-                      },
-                      {
-                          "records":  60,
-                          "path":  "data/working/instruction_noncompliance/semantic_audit/blind_mapping.jsonl",
-                          "sha256":  "7b2432d06795aa2b62feded31f091da7a9186af356e900dc61213995ab49c4b9",
-                          "status":  "restricted_blind_mapping",
-                          "bytes":  4857
-                      },
-                      {
-                          "records":  1,
-                          "path":  "data/working/instruction_noncompliance/semantic_audit/export_manifest.json",
-                          "sha256":  "62071c913a5c4e99ea03b7e3ca1e912a927c934b0eac3d9d0c080ab343862681",
-                          "status":  "generated_audit_export_manifest",
-                          "bytes":  343
-                      },
-                      {
-                          "records":  240,
-                          "path":  "data/working/deceptive_reasoning/candidates.jsonl",
-                          "sha256":  "22d60a8dbb8ef442247884f6009a508e0eeb41672b4b8bd06783fa287adc9f41",
-                          "status":  "draft_pending_human_review",
-                          "bytes":  230752
-                      },
-                      {
-                          "records":  30,
-                          "path":  "data/working/deceptive_reasoning/motivated_review_queue.jsonl",
-                          "sha256":  "135885070c1b8bc76044be3dc074abcc43efbcebf4f79f5d46ee15335bc10ee0",
-                          "status":  "pending_human_review",
-                          "bytes":  48357
-                      },
-                      {
-                          "records":  200,
-                          "path":  "data/working/harmful_compliance/quarantined_legacy_candidates.jsonl",
-                          "sha256":  "24c3eae584ec31d69c7578a7291cc36a41d177639cd7178cd5d7ba14dadcfd58",
-                          "status":  "quarantined_not_stage1_eligible",
-                          "bytes":  102839
-                      }
-                  ]
+  "schema_version": 2,
+  "recorded_on": "2026-08-19",
+  "note": "Hashes identify ignored local research state; they do not confer approval. Approved deceptive materialization and harmful rebuild tasks are recorded for auditability.",
+  "artifacts": [
+    {
+      "records": 150,
+      "path": "data/working/instruction_noncompliance/candidates.jsonl",
+      "sha256": "4a55ecb1e31405d4ca2a310debc187e5600b04d1be1a0b78a8b71d8fe28057a2",
+      "status": "pending_human_archetype_review",
+      "bytes": 527130
+    },
+    {
+      "records": 150,
+      "path": "data/working/instruction_noncompliance/ifeval_official_report.jsonl",
+      "sha256": "13c0bdcdb0b8b5c6c3eed0b7016c3c74446b3580e9025583bd25e6e6e8f1b548",
+      "status": "generated_archetype_aware_checker_report",
+      "bytes": 43880
+    },
+    {
+      "records": 82,
+      "path": "data/working/instruction_noncompliance/mechanical_review_queue.jsonl",
+      "sha256": "a948190f6c6387c3ebfbca032f8d8d0c006a1bdc94582d97cb2e2c627ff24ef9",
+      "status": "pending_human_review",
+      "bytes": 209437
+    },
+    {
+      "records": 8,
+      "path": "data/working/instruction_noncompliance/repaired_review_queue.jsonl",
+      "sha256": "2edc49898ae736998d2127def90c0afc7d58b6be328a83f3ed8a45f0d8d80a54",
+      "status": "pending_human_rereview",
+      "bytes": 16427
+    },
+    {
+      "records": 60,
+      "path": "data/working/instruction_noncompliance/semantic_review_queue.jsonl",
+      "sha256": "6dd4c8b9aa75584e24b3de5cf8e0e092bca1be0598030cfa2c8679dd33033fce",
+      "status": "pending_human_semantic_review",
+      "bytes": 120122
+    },
+    {
+      "records": 60,
+      "path": "data/working/instruction_noncompliance/semantic_audit/tasks.jsonl",
+      "sha256": "f15d5880134e72ad3064e3d2fdabc6d39ccfdd607ad4fc139da32dbde62d61a7",
+      "status": "blinded_provider_neutral_audit_tasks",
+      "bytes": 91706
+    },
+    {
+      "records": 60,
+      "path": "data/working/instruction_noncompliance/semantic_audit/blind_mapping.jsonl",
+      "sha256": "7b2432d06795aa2b62feded31f091da7a9186af356e900dc61213995ab49c4b9",
+      "status": "restricted_blind_mapping",
+      "bytes": 4857
+    },
+    {
+      "records": 1,
+      "path": "data/working/instruction_noncompliance/semantic_audit/export_manifest.json",
+      "sha256": "62071c913a5c4e99ea03b7e3ca1e912a927c934b0eac3d9d0c080ab343862681",
+      "status": "generated_audit_export_manifest",
+      "bytes": 343
+    },
+    {
+      "records": 240,
+      "path": "data/working/deceptive_reasoning/candidates.jsonl",
+      "sha256": "22d60a8dbb8ef442247884f6009a508e0eeb41672b4b8bd06783fa287adc9f41",
+      "status": "draft_pending_human_review",
+      "bytes": 230752
+    },
+    {
+      "records": 30,
+      "path": "data/working/deceptive_reasoning/motivated_review_queue.jsonl",
+      "sha256": "135885070c1b8bc76044be3dc074abcc43efbcebf4f79f5d46ee15335bc10ee0",
+      "status": "pending_human_review",
+      "bytes": 48357
+    },
+    {
+      "records": 200,
+      "path": "data/working/harmful_compliance/quarantined_legacy_candidates.jsonl",
+      "sha256": "24c3eae584ec31d69c7578a7291cc36a41d177639cd7178cd5d7ba14dadcfd58",
+      "status": "quarantined_not_stage1_eligible",
+      "bytes": 102839
+    },
+    {
+      "records": 240,
+      "path": "data/working/deceptive_reasoning/deceptive_diverse_approved_ready.jsonl",
+      "sha256": "CF0B5C6FD6E58C652B6F0CEBC439DF572B7EB15F1777C018DBB902221625DF90",
+      "status": "approved_ready_materialization",
+      "bytes": 283372
+    },
+    {
+      "records": 30,
+      "path": "data/working/deceptive_reasoning/motivated_review_queue_approved.jsonl",
+      "sha256": "66CF0259E082C2CDCB8D369B35395DF1B5CDEFE491412213B8EE1F21C3C3BC07",
+      "status": "approved_human_review_queue",
+      "bytes": 52587
+    },
+    {
+      "records": 100,
+      "path": "data/working/harmful_compliance/rebuild_tasks.jsonl",
+      "sha256": "D876DCE51B5750B0177142451AB9F5E26EF7D1C9EE49204E533C86BB74035586",
+      "status": "quarantined_rebuild_task_scaffold",
+      "bytes": 61829
+    }
+  ]
 }

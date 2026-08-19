@@ -24,7 +24,9 @@ Working filenames describe state rather than tools or chronology. Provider/model
 
 The materialization boundary copies only research identifiers, instruction, completion, polarity, source group, split, provenance citation, and approval state. Review notes and generation traces remain outside the transcript.
 
-Harmful compliance is quarantined from Stage 1. Its legacy file is recoverable locally as `data/working/harmful_compliance/quarantined_legacy_candidates.jsonl`.
+The approved deceptive reasoning materialization now lives as an ignored working artifact under `data/working/deceptive_reasoning/`; the canonical approved review queue remains separately recorded for auditability.
+
+Harmful compliance is quarantined from Stage 1. Its legacy file is recoverable locally as `data/working/harmful_compliance/quarantined_legacy_candidates.jsonl`, and the rebuild-task scaffold lives beside it as `data/working/harmful_compliance/rebuild_tasks.jsonl`.
 
 `datasets/manifests/reconstruction.json` defines the clean-checkout reconstruction boundary. `datasets/manifests/working_state.json` hashes ignored local research inputs without implying approval, while `datasets/manifests/smoke_runs.json` records engineering-only model smoke evidence separately from research results.
 
