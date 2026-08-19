@@ -23,7 +23,7 @@ Stage-1 Llama fitting is blocked pending:
 - completion of the harmful-compliance rebuild from full responses; the previous JailbreakBench construction remains quarantined because it paired one corrupted refusal template with target prefixes rather than full responses;
 - Swahili translation, which remains downstream of the English freeze.
 
-The human-review workbench and its blinded audit path are available for repeat audits, but the current bottleneck is now corpus freeze and release hygiene rather than the mechanical review queues.
+The human-review workbench and its blinded audit path are available for repeat audits, but the current bottleneck is now frozen-release verification and Llama readiness rather than the mechanical review queues.
 
 ## Scientific safeguards
 
