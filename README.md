@@ -19,14 +19,11 @@ The package and GPT-2 smoke path are operational. On 2026-08-08, a pinned GPT-2 
 
 Stage-1 Llama fitting is blocked pending:
 
-- human review of 82 mechanically aligned IFEval candidates and re-review of 8 repaired candidates;
-- semantic review of 30 topic-shift and 30 excessive-caveating contrasts, supported by a blinded non-gating audit;
-- archetype-aware official checks: mechanical evasions fail declared constraints while semantic evasions preserve them;
-- approval and source-group split of the 120-pair deceptive-reasoning draft;
-- human review of the newly naturalized motivated-reasoning completions;
-- a separately rebuilt harmful-compliance corpus. The previous JailbreakBench construction is quarantined because it paired one corrupted refusal template with target prefixes rather than full responses.
+- materialization of the approved deceptive-reasoning corpus into the tracked release subset, including source-group-aware splits;
+- completion of the harmful-compliance rebuild from full responses; the previous JailbreakBench construction remains quarantined because it paired one corrupted refusal template with target prefixes rather than full responses;
+- Swahili translation, which remains downstream of the English freeze.
 
-Swahili translation remains downstream of the English freeze.
+The human-review workbench and its blinded audit path are available for repeat audits, but the current bottleneck is now corpus freeze and release hygiene rather than the mechanical review queues.
 
 ## Scientific safeguards
 
