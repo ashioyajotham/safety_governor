@@ -72,10 +72,11 @@ python -m scripts.validate_ifeval_candidates data/working/instruction_noncomplia
 
 It intentionally fails until every mechanical failure declaration and semantic contrast is human-confirmed.
 
-The current human gate is conducted with the provider-neutral
-[`IFEval review workbench`](docs/notebooks/review/ifeval_human_review_workbench.ipynb).
-It reviews immutable 82-row mechanical, 8-row repaired, and 60-row semantic queues;
-shows only the active archetype's tri-state rubric, stores decisions in a separate
+The provider-neutral
+[`IFEval review workbench`](docs/notebooks/review/ifeval_human_review_workbench.ipynb)
+remains available for audit replay and future refreshes. It was used to resolve the
+82-row mechanical queue, the 8-row repaired queue, and the 60-row semantic queue;
+it shows only the active archetype's tri-state rubric, stores decisions in a separate
 append-only session, and locks all semantic judgments before diagnostic model scores
 can be imported. Build its self-verifying input bundle with:
 
