@@ -1,4 +1,9 @@
-"""Extract a train-only vector from pair-aligned activation matrices."""
+"""Extract a train-only steering direction from aligned activation matrices.
+
+This script is intentionally conservative: it refuses non-train splits, checks
+safe/unsafe metadata alignment, aggregates repeated source groups before
+fitting, and writes bootstrap stability beside the vector.
+"""
 from __future__ import annotations
 
 import argparse
@@ -12,6 +17,8 @@ METHODS = {"difference_in_means": difference_in_means, "paired_delta_pca": paire
 
 
 def validate_fit_metadata(safe_metadata: dict, unsafe_metadata: dict) -> list[str]:
+    """Return metadata problems that would make vector fitting scientifically unsafe."""
+
     errors = []
     for field in ("sample_ids", "splits", "source_group_ids", "token_mode", "layer"):
         if safe_metadata.get(field) != unsafe_metadata.get(field):
@@ -40,6 +47,8 @@ def main() -> None:
     group_ids = safe_metadata.get("source_group_ids")
     extractor = METHODS[args.method]
     unique_groups = sorted(set(group_ids))
+    # Collapse repeated source groups before fitting so source variants do not
+    # dominate the direction.
     safe_grouped = np.stack([safe[[i for i, group in enumerate(group_ids) if group == target]].mean(axis=0) for target in unique_groups])
     unsafe_grouped = np.stack([unsafe[[i for i, group in enumerate(group_ids) if group == target]].mean(axis=0) for target in unique_groups])
     vector = extractor(safe_grouped, unsafe_grouped)

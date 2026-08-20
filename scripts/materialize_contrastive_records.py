@@ -1,4 +1,10 @@
-"""Materialize reviewed annotations into a provider-isolated experiment schema."""
+"""Materialize reviewed annotations into a provider-isolated experiment schema.
+
+This converts instruction-annotation rows into the shared contrastive-record
+format while intentionally dropping annotation-provider and reviewer-note
+metadata. The experiment corpus should encode behavioral text and provenance,
+not annotation plumbing artifacts.
+"""
 from __future__ import annotations
 
 import argparse
@@ -8,6 +14,8 @@ from pathlib import Path
 
 
 def source_group_id(row: dict) -> str:
+    """Use explicit source grouping, or derive one from the stable IFEval source key."""
+
     if row.get("source_group_id"):
         return row["source_group_id"]
     key = str(row.get("source_key", row["pair_id"]))
@@ -15,6 +23,8 @@ def source_group_id(row: dict) -> str:
 
 
 def materialize(row: dict) -> list[dict]:
+    """Create safe and unsafe contrastive records from one approved annotation."""
+
     if row.get("annotation_status") != "approved":
         raise ValueError(f"{row['pair_id']}: only approved annotations can be materialized")
     common = {

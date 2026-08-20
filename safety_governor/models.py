@@ -1,4 +1,9 @@
-"""Optional heavyweight model backend and explicit response-position capture."""
+"""Optional heavyweight model backend and explicit response-position capture.
+
+This is the only module that should know about TransformerLens/Hugging Face
+runtime details. Everything above it passes explicit instruction/completion
+strings and receives numpy arrays.
+"""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -7,6 +12,8 @@ import numpy as np
 
 @dataclass(frozen=True)
 class TokenizedBatch:
+    """Tokenization result with response boundaries preserved."""
+
     tokens: object
     attention_mask: object
     response_mask: object
@@ -29,6 +36,8 @@ def load_transformerlens_model(name: str, revision: str, device: str | None = No
 
 
 def _prefix_ids(tokenizer, instruction: str) -> list[int]:
+    """Return token IDs up to the assistant-generation boundary."""
+
     messages = [{"role": "user", "content": instruction}]
     if getattr(tokenizer, "chat_template", None):
         return list(tokenizer.apply_chat_template(
@@ -48,6 +57,8 @@ def tokenize_instruction_completion(model, instructions: list[str], completions:
     tokenizer = model.tokenizer
     sequences, response_starts = [], []
     for instruction, completion in zip(instructions, completions):
+        # Tokenize the prompt boundary and completion separately so response
+        # activations are not confused with prompt-boundary activations.
         prefix = _prefix_ids(tokenizer, instruction)
         response = list(tokenizer.encode(completion, add_special_tokens=False))
         if not response:
@@ -67,6 +78,7 @@ def tokenize_instruction_completion(model, instructions: list[str], completions:
     response_mask = torch.zeros((len(sequences), width), dtype=torch.bool)
     final_positions = torch.empty(len(sequences), dtype=torch.long)
     for index, (sequence, response_start) in enumerate(zip(sequences, response_starts)):
+        # Preserve correct response positions for either left- or right-padding.
         offset = width - len(sequence) if padding_side == "left" else 0
         end = offset + len(sequence)
         tokens[index, offset:end] = torch.tensor(sequence)
@@ -93,9 +105,12 @@ def residual_at_response(
         _, cache = model.run_with_cache(batch.tokens, return_type="logits")
     values = cache[f"blocks.{layer}.hook_resid_pre"]
     if site == "final_response_token":
+        # Sensitivity site: one activation per completion, at its real final
+        # non-padding response token.
         indices = values.new_tensor(range(values.shape[0]))
         selected = values[indices, batch.final_response_positions.to(values.device), :]
     elif site == "response_mean":
+        # Primary site: average only over response tokens, not prompt or padding.
         mask = batch.response_mask.to(values.device).unsqueeze(-1)
         selected = (values * mask).sum(dim=1) / mask.sum(dim=1)
     else:

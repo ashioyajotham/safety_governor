@@ -8,16 +8,21 @@ from importlib import metadata
 
 
 def _git(*args: str) -> str:
+    """Run a read-only git command and degrade to 'unknown' outside a repo."""
+
     result = subprocess.run(["git", *args], check=False, capture_output=True, text=True, encoding="utf-8")
     return result.stdout.strip() if result.returncode == 0 else "unknown"
 
 
 def environment_facts(device: str | None) -> dict:
+    """Collect runtime facts stored in experiment manifests."""
+
     try:
         import torch
         torch_facts = {"torch": torch.__version__, "cuda_runtime": torch.version.cuda, "cuda_available": torch.cuda.is_available()}
     except ImportError:
         torch_facts = {"torch": "not-installed", "cuda_runtime": None, "cuda_available": False}
+    # Hash the current diff rather than embedding it directly in manifests.
     diff = _git("diff", "--binary")
     packages = {}
     for name in ("transformer-lens", "transformers", "torch", "numpy"):

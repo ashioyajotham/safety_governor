@@ -1,4 +1,9 @@
-"""Activation cache persistence with explicit layer/token metadata."""
+"""Activation cache persistence with explicit layer/token metadata.
+
+Every ``.npy`` activation matrix is paired with a small JSON sidecar. The
+sidecar makes downstream vector fitting reject split leakage, layer mismatch,
+or safe/unsafe row misalignment instead of relying on filename conventions.
+"""
 from __future__ import annotations
 
 from pathlib import Path
@@ -16,6 +21,8 @@ def save_matrix(
     splits: list[str] | None = None,
     source_group_ids: list[str] | None = None,
 ) -> None:
+    """Save a 2D activation matrix and the metadata needed to fit safely."""
+
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     np.save(path, values)
@@ -30,6 +37,8 @@ def save_matrix(
 
 
 def load_matrix(path: str | Path) -> np.ndarray:
+    """Load an activation matrix and enforce the expected [examples, hidden] shape."""
+
     values = np.load(Path(path), allow_pickle=False)
     if values.ndim != 2:
         raise ValueError("activation matrix must have shape [examples, hidden]")
@@ -37,5 +46,7 @@ def load_matrix(path: str | Path) -> np.ndarray:
 
 
 def load_metadata(path: str | Path) -> dict:
+    """Load the JSON sidecar written next to an activation matrix."""
+
     metadata_path = Path(path).with_suffix(Path(path).suffix + ".json")
     return json.loads(metadata_path.read_text(encoding="utf-8"))

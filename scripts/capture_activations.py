@@ -1,4 +1,10 @@
-"""Capture train-only response activations and write a reproducible run manifest."""
+"""Capture response activations for one model layer and corpus split.
+
+This is the Stage-1 entrypoint used by the Colab runner. It loads the frozen
+contrastive corpus, enforces split/preflight gates, captures safe and unsafe
+responses in aligned order, and writes a manifest containing dataset/runtime
+fingerprints.
+"""
 from __future__ import annotations
 
 import argparse
@@ -17,6 +23,8 @@ from safety_governor.reproducibility import environment_facts
 
 
 def capture_records(model, records, layer: int, site: str, batch_size: int) -> np.ndarray:
+    """Capture records in small batches so Llama runs can fit on limited GPUs."""
+
     if batch_size < 1:
         raise ValueError("batch_size must be >= 1")
     chunks = []
@@ -53,11 +61,15 @@ def main() -> None:
     )
     if preflight:
         raise SystemExit("Stage-1 preflight failed:\n- " + "\n- ".join(preflight))
+    # Filtering happens after preflight so checks can inspect the whole corpus,
+    # but only the requested split is captured.
     records = [record for record in records if record.split == args.split]
     if not records:
         raise SystemExit(f"no approved records found for split={args.split}")
     if any(not record.instruction or record.completion is None for record in records):
         raise SystemExit("capture requires explicit instruction and completion fields")
+    # Build aligned safe/unsafe lists by pair ID. Vector fitting assumes row i
+    # in safe.npy is the contrastive partner of row i in unsafe.npy.
     safe_by_id = {r.pair_id: r for r in records if r.polarity is Polarity.SAFE}
     unsafe_by_id = {r.pair_id: r for r in records if r.polarity is Polarity.UNSAFE}
     if set(safe_by_id) != set(unsafe_by_id):

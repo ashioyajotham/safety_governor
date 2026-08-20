@@ -1,4 +1,9 @@
-"""Fail-closed checks that run before research activation capture."""
+"""Fail-closed checks that run before research activation capture.
+
+These checks guard the transition from corpus work into model experiments.
+They intentionally reject symbolic model revisions, quarantined datasets, and
+unauthorized test captures.
+"""
 from __future__ import annotations
 
 from importlib import metadata
@@ -10,6 +15,8 @@ SYMBOLIC_REVISIONS = {"main", "master", "latest"}
 
 
 def runtime_errors(config: dict) -> list[str]:
+    """Check runtime constraints declared in the experiment config."""
+
     errors = []
     revision = str(config.get("model", {}).get("revision", ""))
     if not revision or revision.lower() in SYMBOLIC_REVISIONS:
@@ -31,6 +38,8 @@ def stage1_errors(
     split: str,
     allow_test_capture: bool,
 ) -> list[str]:
+    """Return Stage-1 blockers for the selected corpus split."""
+
     errors = runtime_errors(config)
     dataset = config.get("dataset", {})
     path = Path(str(dataset.get("path", "")))
@@ -38,6 +47,8 @@ def stage1_errors(
         errors.append("Stage-1 dataset must be a JSONL contrastive corpus")
     if "quarantined" in str(path).lower():
         errors.append("quarantined corpus is not Stage-1 eligible")
+    # Test capture requires explicit opt-in so final evaluation is not touched
+    # during exploratory fitting or validation.
     if split == "test" and not allow_test_capture:
         errors.append("test capture requires --allow-test-capture")
     if any(not record.source_group_id for record in records):

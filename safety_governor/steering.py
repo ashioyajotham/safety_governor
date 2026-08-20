@@ -1,4 +1,9 @@
-"""Framework-agnostic activation addition and TransformerLens hook adaptation."""
+"""Framework-agnostic activation addition and TransformerLens hook adaptation.
+
+The functions here do not own tokenization. Callers must provide explicit
+positions or masks for position-sensitive interventions so padding tokens are
+never steered by accident.
+"""
 from __future__ import annotations
 
 from typing import Callable
@@ -27,6 +32,8 @@ def add_vector(activation, vector, coefficient: float, token_mode: str, position
 
 
 def make_hook(vector, spec: InterventionSpec, *, positions=None, position_mask=None) -> Callable:
+    """Build a TransformerLens-compatible hook from a neutral intervention spec."""
+
     def hook(activation, hook=None):
         return add_vector(
             activation, vector, spec.coefficient, spec.token_mode,
@@ -36,4 +43,6 @@ def make_hook(vector, spec: InterventionSpec, *, positions=None, position_mask=N
 
 
 def hook_name(layer: int) -> str:
+    """TransformerLens residual-stream hook name for a layer."""
+
     return f"blocks.{layer}.hook_resid_pre"

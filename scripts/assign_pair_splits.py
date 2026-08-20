@@ -1,4 +1,9 @@
-"""Assign deterministic archetype-stratified splits at source-group level."""
+"""Assign deterministic archetype-stratified splits at source-group level.
+
+The split unit is ``source_group_id``, not ``pair_id``. This prevents related
+variants of the same underlying question/argument from leaking across
+train/validation/test.
+"""
 from __future__ import annotations
 
 import argparse
@@ -21,6 +26,8 @@ def split_for(seed: int, source_group_id: str) -> str:
 
 
 def _counts(number_of_groups: int) -> tuple[int, int, int]:
+    """Return approximate 70/15/15 counts while keeping small sets usable."""
+
     if number_of_groups < 3:
         return number_of_groups, 0, 0
     validation = max(1, round(number_of_groups * .15))
@@ -30,6 +37,8 @@ def _counts(number_of_groups: int) -> tuple[int, int, int]:
 
 
 def assign(rows: list[dict], seed: int) -> dict[str, str]:
+    """Map each pair ID to a split, preserving source-group and archetype structure."""
+
     pair_rows: dict[str, list[dict]] = defaultdict(list)
     for row in rows:
         pair_rows[row["pair_id"]].append(row)
@@ -53,6 +62,8 @@ def assign(rows: list[dict], seed: int) -> dict[str, str]:
         by_archetype[archetype].append(group_id)
     group_splits = {}
     for archetype, group_ids in by_archetype.items():
+        # Stratify within each archetype so every subtype appears in each split
+        # whenever there are enough source groups.
         ordered = sorted(
             group_ids,
             key=lambda group_id: hashlib.sha256(f"{seed}:{archetype}:{group_id}".encode()).hexdigest(),
