@@ -17,13 +17,9 @@ The intervention is `A'_L = A_L + alpha v`. The predeclared provisional viabilit
 
 The package and GPT-2 smoke path are operational. On 2026-08-08, a pinned GPT-2 commit completed a CPU `response_mean` capture and a position-aware steering-hook smoke under TransformerLens 3.1.0. The tracked smoke manifest records hashes; this verifies plumbing only and is not evidence for a safety claim.
 
-Stage-1 Llama fitting is blocked pending:
+Stage-1 Llama plumbing now targets the frozen deceptive-reasoning release at `datasets/frozen/english_contrastive.jsonl`. Harmful compliance is a later Stage-1b rebuild: the previous JailbreakBench construction remains quarantined because it paired one corrupted refusal template with target prefixes rather than full responses. Swahili translation remains downstream of the English configuration freeze.
 
-- materialization of the approved deceptive-reasoning corpus into the tracked release subset, including source-group-aware splits;
-- completion of the harmful-compliance rebuild from full responses; the previous JailbreakBench construction remains quarantined because it paired one corrupted refusal template with target prefixes rather than full responses;
-- Swahili translation, which remains downstream of the English freeze.
-
-The human-review workbench and its blinded audit path are available for repeat audits, but the current bottleneck is now frozen-release verification and Llama readiness rather than the mechanical review queues.
+The current bottleneck is GPU execution and artifact review, not annotation plumbing. The repo-first Colab runner lives at [`docs/notebooks/stage1/llama_stage1_colab.ipynb`](docs/notebooks/stage1/llama_stage1_colab.ipynb).
 
 ## Scientific safeguards
 
@@ -48,6 +44,7 @@ data/working/                mutable candidate, review, quarantine, and report d
 data/archive/                superseded local artifacts (ignored; hashes tracked)
 docs/                        protocol, governance, curation, and research notebook material
 docs/notebooks/review/       local/Colab human-review workbench (thin UI over tested core)
+docs/notebooks/stage1/      Colab runner for Llama Stage-1 capture and vector extraction
 tests/                       deterministic scientific and engineering checks
 artifacts/                   ignored run manifests, activation caches, and vectors
 ```

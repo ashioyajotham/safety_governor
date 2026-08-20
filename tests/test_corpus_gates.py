@@ -230,3 +230,30 @@ def test_final_review_application_fails_closed():
     }]
     with pytest.raises(ValueError, match="unresolved failure declaration"):
         apply_instruction([candidate], queue)
+
+
+def test_capture_records_respects_batch_size(monkeypatch):
+    from types import SimpleNamespace
+    import numpy as np
+    import scripts.capture_activations as capture_activations
+
+    calls = []
+
+    def fake_residual(model, instructions, completions, layer, site):
+        calls.append((instructions, completions, layer, site))
+        return np.array([[float(len(instruction))] for instruction in instructions])
+
+    monkeypatch.setattr(capture_activations, "residual_at_response", fake_residual)
+    records = [
+        SimpleNamespace(instruction="a", completion="x"),
+        SimpleNamespace(instruction="bb", completion="y"),
+        SimpleNamespace(instruction="ccc", completion="z"),
+    ]
+
+    captured = capture_activations.capture_records(None, records, layer=3, site="response_mean", batch_size=2)
+
+    assert np.array_equal(captured, np.array([[1.0], [2.0], [3.0]]))
+    assert calls == [
+        (["a", "bb"], ["x", "y"], 3, "response_mean"),
+        (["ccc"], ["z"], 3, "response_mean"),
+    ]

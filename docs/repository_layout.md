@@ -13,12 +13,12 @@
 | `artifacts/` | Captures, vectors, and run manifests | Ignored |
 
 The tracked review notebook lives at
-`docs/notebooks/review/ifeval_human_review_workbench.ipynb`. Its generated bundle,
+`docs/notebooks/review/ifeval_human_review_workbench.ipynb`; its generated bundle,
 extracted immutable sources, session checkpoints, imported exports, and provider audit
 outputs remain under `data/working/instruction_noncompliance/` and are ignored. The
 tracked `scripts/build_review_workbench_notebook.py` deterministically rebuilds the
 notebook; review policy itself lives in the tested package module rather than notebook
-cell state.
+cell state. The Stage-1 GPU runner lives at `docs/notebooks/stage1/llama_stage1_colab.ipynb`. The Stage-1 GPU runner lives at `docs/notebooks/stage1/llama_stage1_colab.ipynb`.
 
 Working filenames describe state rather than tools or chronology. Provider/model identifiers belong in annotation provenance or semantic-audit run manifests, never in experiment inputs.
 
