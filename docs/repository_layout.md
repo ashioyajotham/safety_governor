@@ -18,13 +18,18 @@ extracted immutable sources, session checkpoints, imported exports, and provider
 outputs remain under `data/working/instruction_noncompliance/` and are ignored. The
 tracked `scripts/build_review_workbench_notebook.py` deterministically rebuilds the
 notebook; review policy itself lives in the tested package module rather than notebook
-cell state. The Stage-1 GPU runner lives at `docs/notebooks/stage1/llama_stage1_colab.ipynb`. The Stage-1 GPU runner lives at `docs/notebooks/stage1/llama_stage1_colab.ipynb`.
+cell state. The Stage-1 GPU runner lives at
+`docs/notebooks/stage1/llama_stage1_colab.ipynb`.
 
 Working filenames describe state rather than tools or chronology. Provider/model identifiers belong in annotation provenance or semantic-audit run manifests, never in experiment inputs.
 
 The materialization boundary copies only research identifiers, instruction, completion, polarity, source group, split, provenance citation, and approval state. Review notes and generation traces remain outside the transcript.
 
-The deceptive reasoning release input is frozen at `datasets/frozen/english_contrastive.jsonl`. The approved-ready working materialization remains under `data/working/deceptive_reasoning/` for auditability, and the canonical approved review queue is retained separately.
+The deceptive reasoning release input is frozen at
+`datasets/frozen/english_contrastive.jsonl`. It contains 120 approved pairs / 240
+records and is the current Stage-1 experiment input. The approved-ready working
+materialization remains under `data/working/deceptive_reasoning/` for auditability,
+and the canonical approved review queue is retained separately.
 
 Harmful compliance is quarantined from Stage 1. Its legacy file is recoverable locally as `data/working/harmful_compliance/quarantined_legacy_candidates.jsonl`, and the rebuild-task scaffold lives beside it as `data/working/harmful_compliance/rebuild_tasks.jsonl`.
 

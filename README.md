@@ -49,21 +49,25 @@ tests/                       deterministic scientific and engineering checks
 artifacts/                   ignored run manifests, activation caches, and vectors
 ```
 
-See [repository lifecycle](docs/repository_layout.md), [data remediation](docs/data_quality_remediation.md), and [experiment protocol](docs/experiment_protocol.md).
+Start with the [user guide](docs/user_guide.md) and [documentation map](docs/README.md).
+Methodological detail is in the [dataset curation workflow](docs/dataset_curation_workflow.md),
+[repository lifecycle](docs/repository_layout.md), [data remediation](docs/data_quality_remediation.md),
+and [experiment protocol](docs/experiment_protocol.md).
 
-## Local verification
+## Quick start
 
-```powershell
-py -3.11 -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-python -m scripts.validate_dataset datasets/fixtures/contrastive_en.jsonl
-pytest -q
+```bash
+python3.11 -m venv .venv
+source .venv/bin/activate        # macOS/Linux
+# .venv\Scripts\Activate.ps1    # Windows PowerShell
+python -m pip install -r requirements.txt
+python -m scripts.validate_dataset datasets/frozen/english_contrastive.jsonl
+python -m pytest -q
 ```
 
 The final archetype-aware IFEval gate is:
 
-```powershell
+```bash
 python -m scripts.validate_ifeval_candidates data/working/instruction_noncompliance/candidates.jsonl --report data/working/instruction_noncompliance/ifeval_official_report.jsonl --require-declarations
 ```
 
@@ -77,7 +81,7 @@ it shows only the active archetype's tri-state rubric, stores decisions in a sep
 append-only session, and locks all semantic judgments before diagnostic model scores
 can be imported. Build its self-verifying input bundle with:
 
-```powershell
+```bash
 python -m scripts.prepare_review_workbench_bundle --output data/working/instruction_noncompliance/review_workbench_bundle.zip
 ```
 

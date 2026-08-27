@@ -66,23 +66,33 @@ RUBRIC_SPECS = {
 
 
 def utc_now() -> str:
+    """Return an ISO-8601 UTC timestamp for append-only review events."""
+
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
 def sha256_bytes(value: bytes) -> str:
+    """Return the SHA-256 digest of an in-memory payload."""
+
     return hashlib.sha256(value).hexdigest()
 
 
 def sha256_file(path: Path) -> str:
+    """Return the SHA-256 digest of a file without interpreting its contents."""
+
     return sha256_bytes(path.read_bytes())
 
 
 def canonical_hash(value: object) -> str:
+    """Hash a JSON-compatible value using deterministic serialization."""
+
     encoded = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     return sha256_bytes(encoded.encode("utf-8"))
 
 
 def read_jsonl(path: Path) -> list[dict]:
+    """Read non-empty JSONL rows from ``path``."""
+
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line]
 
 
@@ -113,6 +123,8 @@ def _atomic_jsonl(path: Path, rows: list[dict]) -> None:
 
 
 def row_fingerprint(row: dict) -> str:
+    """Fingerprint immutable annotation fields, excluding reviewer decisions."""
+
     return canonical_hash({key: row.get(key) for key in IMMUTABLE_FIELDS})
 
 
@@ -198,6 +210,8 @@ def prepare_bundle(root: Path, output: Path) -> dict:
 
 
 def extract_bundle(bundle: Path, destination: Path) -> dict:
+    """Extract a review bundle after membership and hash verification."""
+
     destination.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(bundle) as archive:
         names = set(archive.namelist())
@@ -219,6 +233,8 @@ def extract_bundle(bundle: Path, destination: Path) -> dict:
 
 
 def verify_bundle_dir(bundle_dir: Path) -> dict:
+    """Verify an extracted bundle against its immutable manifest."""
+
     manifest = json.loads((bundle_dir / "bundle_manifest.json").read_text(encoding="utf-8"))
     if manifest.get("schema_version") != BUNDLE_SCHEMA:
         raise ValueError("unsupported review bundle schema")
@@ -242,6 +258,8 @@ def verify_bundle_dir(bundle_dir: Path) -> dict:
 
 
 def rubric_fields(archetype: str) -> tuple[str, ...]:
+    """Return only the decision fields governed by the selected archetype."""
+
     try:
         return tuple(field for field, _label, _expected in RUBRIC_SPECS[archetype])
     except KeyError as exc:
@@ -291,6 +309,13 @@ def _initial_decision(row: dict, queue: str) -> dict:
 
 
 def validate_decision(row: dict, decision: dict, *, require_audit: bool = True) -> None:
+    """Reject incomplete or internally inconsistent human review decisions.
+
+    Mechanical and semantic rows have different evidence contracts. Resolved
+    decisions also require a substantive note; semantic approvals additionally
+    require the locked diagnostic audit to be acknowledged when requested.
+    """
+
     status = decision.get("annotation_decision")
     if status not in {"pending", "approved", "rejected"}:
         raise ValueError("corpus decision must be Defer, Approve, or Reject")

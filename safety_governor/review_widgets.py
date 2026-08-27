@@ -11,6 +11,13 @@ def _box(value: object) -> str:
 
 
 class ReviewWorkbenchUI:
+    """Notebook UI exposing only the rubric relevant to the current row.
+
+    The UI is deliberately thin. Durable state transitions, locking, validation,
+    and export logic live in :class:`safety_governor.review_workbench.ReviewSession`
+    so a notebook restart cannot redefine research policy.
+    """
+
     def __init__(self, session: ReviewSession):
         import ipywidgets as w
 
@@ -327,4 +334,6 @@ class ReviewWorkbenchUI:
 
 
 def launch(session: ReviewSession) -> ReviewWorkbenchUI:
+    """Display and return a workbench for an existing durable review session."""
+
     return ReviewWorkbenchUI(session).display()

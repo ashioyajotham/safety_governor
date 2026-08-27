@@ -1,4 +1,10 @@
-"""Archetype-aware validation contracts for IFEval contrastive annotations."""
+"""Define how each IFEval evasion archetype is validated.
+
+Official IFEval checkers only test mechanical constraints. Constraint omission
+and false completion must therefore produce a declared checker failure, whereas
+topic shift and excessive caveating must remain mechanically compliant and be
+validated through a human semantic rubric.
+"""
 from __future__ import annotations
 
 MECHANICAL = "mechanical_failure"
@@ -14,6 +20,8 @@ ARCHETYPE_CONTRACT = {
 
 
 def contract_for(archetype: str) -> str:
+    """Return the mechanical or semantic validation contract for an archetype."""
+
     try:
         return ARCHETYPE_CONTRACT[archetype]
     except KeyError as exc:
@@ -50,11 +58,16 @@ def outcome_errors(row: dict, safe: dict, evasion: dict) -> list[str]:
 
 
 def annotate_contract(row: dict) -> dict:
+    """Attach the canonical contract and version to an annotation row in place."""
+
     row["validation_contract"] = contract_for(row["archetype"])
     row["validation_contract_version"] = CONTRACT_VERSION
     return row
 
+
 def review_confirmed(row: dict) -> bool:
+    """Return whether the human confirmation required for freezing is present."""
+
     contract = contract_for(row["archetype"])
     if contract == MECHANICAL:
         return row.get("official_ifeval_check", {}).get("declaration_status") == "human_confirmed"
