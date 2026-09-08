@@ -76,34 +76,59 @@ python -m scripts.verify_working_state
 
 These commands verify hashes; they do not upgrade a candidate's approval state.
 
-## 4. Recommended Colab workflow
+## 4. Recommended Vast.ai workflow
 
-Open `docs/notebooks/stage1/llama_stage1_colab.ipynb` in Colab. The notebook:
+Vast.ai is the primary Stage-1 execution environment. Use a single CUDA GPU with
+at least 24 GiB VRAM, SSH plus `tmux`, and a persistent volume mounted at `/data`.
+BF16 is preferred when supported; otherwise select the FP16 profile explicitly.
+The runner never silently changes precision.
+
+Follow [`vast_ai_runbook.md`](vast_ai_runbook.md). In outline:
+
+```bash
+read -rsp 'Hugging Face token: ' HF_TOKEN
+export HF_TOKEN
+export VAST_IMAGE='<exact-image-name-or-digest-from-vast-template>'
+./scripts/bootstrap_vast.sh <immutable-git-commit>
+
+/data/safety_governor/venv/bin/python -m scripts.run_stage1 \
+  configs/llama3_8b.yaml \
+  --runtime-profile configs/runtime/vast_bf16.yaml \
+  --layers 0 \
+  --split train \
+  --run-id llama3-stage1-layer0 \
+  --resume
+```
+
+After layer 0 passes artifact review, run the primary sweep with
+`--layers 0,4,8,12,16,20,24,28`. A single process loads Llama once and captures
+only those residual hooks. Atomic paired shards allow the command to resume after
+an interruption without accepting mismatched prior state.
+
+## 5. Colab fallback
+
+Open `docs/notebooks/stage1/llama_stage1_colab.ipynb` in Colab only when Vast is
+unavailable. The notebook:
 
 1. clones or pulls the GitHub repository;
 2. installs the pinned dependencies;
 3. reads `HF_TOKEN` from Colab secrets;
 4. validates the frozen corpus and runtime;
-5. captures one requested layer and split;
-6. fits a train-only vector;
+5. invokes the same resumable multi-layer runner used on Vast;
+6. captures requested layers and fits train-only vectors;
 7. stores artifacts in Google Drive when configured.
 
-Start with:
+Start with `LAYERS = "0"` and a stable `RUN_ID`. The Drive directory preserves
+shards across runtime resets. Later use `LAYERS = "0,4,8,12,16,20,24,28"`.
 
-```text
-SPLIT = "train"
-LAYER = 0
-BATCH_SIZE = 1
-DEVICE = "cuda"
-VECTOR_METHOD = "difference_in_means"
-RUN_LAYER_SWEEP = False
-```
+The Colab path is operationally secondary; it does not define different capture
+or fitting semantics.
 
 This is a feasibility run, not a layer-selection conclusion. If a T4 runs out of
 memory, move to a higher-memory runtime. Do not reduce scientific gates, merge
 splits, or alter response-boundary semantics to force a run.
 
-## 5. Command-line Stage-1 workflow
+## 6. Legacy one-layer command
 
 Capture one layer from the train split:
 
@@ -138,7 +163,7 @@ Available methods are:
 All methods produce unit vectors. Vector extraction rejects activation metadata that
 contains validation or test rows or misaligned safe/unsafe sample IDs.
 
-## 6. Capture semantics
+## 7. Capture semantics
 
 The stored record has an explicit `instruction` and `completion`. Tokenization builds
 the assistant-generation prefix separately from the completion so activation sites
@@ -150,16 +175,26 @@ are unambiguous:
 This is different from capturing the final token of a concatenated transcript.
 Padding positions are excluded. The residual hook is `blocks.{layer}.hook_resid_pre`.
 
-## 7. Artifact layout and interpretation
+## 8. Artifact layout and interpretation
 
-A capture run produces:
+A resumable Stage-1 run produces:
 
 ```text
-artifacts/capture-<UTC timestamp>/
-  safe.npy
-  safe.npy.json
-  unsafe.npy
-  unsafe.npy.json
+artifacts/<run-id>/
+  run_spec.json
+  status.json
+  shards/batch_<index>.npz
+  layers/layer_<index>/
+    safe.npy
+    safe.npy.json
+    unsafe.npy
+    unsafe.npy.json
+    difference_in_means.npy
+    difference_in_means.stability.npy
+    paired_delta_pca.npy
+    paired_delta_pca.stability.npy
+    probe.npy
+    probe.stability.npy
   manifest.json
 ```
 
@@ -167,19 +202,26 @@ The sidecars record layer, capture site, ordered pair IDs, split labels, source-
 IDs, and matrix shape. `manifest.json` records config, model revision, dataset hash,
 Git state, Python/Torch/CUDA/package facts, device, and artifact paths.
 
-Vector fitting adds:
-
-```text
-difference_in_means.npy
-difference_in_means.stability.npy
-```
-
 Bootstrap cosine values measure directional stability under source-group-aware
 resampling. A successful file write or high stability value is not by itself a
 safety result. Stage-1 interpretation still requires held-out evaluation and control-
 tax measurement.
 
-## 8. Split discipline
+Completed runs can be exported without duplicate batch shards:
+
+```bash
+python -m scripts.audit_stage1_run \
+  /data/safety_governor/artifacts/llama3-stage1-layer0
+
+python -m scripts.export_stage1_run \
+  /data/safety_governor/artifacts/llama3-stage1-layer0 \
+  /data/safety_governor/exports/llama3-stage1-layer0.tar.gz
+```
+
+The command writes a SHA-256 sidecar. Copy both files off the Vast host before
+destroying the volume.
+
+## 9. Split discipline
 
 - **Train:** fit vector directions.
 - **Validation:** select layer, extraction method, steering coefficient, and token
@@ -189,7 +231,7 @@ tax measurement.
 Capture of the test split requires the explicit `--allow-test-capture` flag. This is
 a deliberate friction point. Do not use it during exploratory work.
 
-## 9. Steering and evaluation
+## 10. Steering and evaluation
 
 The intervention is:
 
@@ -207,7 +249,7 @@ The current Colab runner covers capture and vector fitting. Full generation-side
 steering and benchmark evaluation should be added only after the first capture
 artifacts are inspected and the validation plan is fixed.
 
-## 10. Dataset curation and review
+## 11. Dataset curation and review
 
 Do not edit `datasets/frozen/english_contrastive.jsonl` as a convenient input file.
 New or revised data must pass through source registration, working candidates, human
@@ -219,7 +261,7 @@ new freeze. See:
 - `docs/annotation_assistance.md` for the review workbench;
 - `docs/experiment_protocol.md` for fit/evaluation discipline.
 
-## 11. Common failures
+## 12. Common failures
 
 ### Hugging Face access error
 
@@ -233,8 +275,15 @@ the runtime versions that affect TransformerLens model loading.
 
 ### CUDA out of memory
 
-Use `--batch-size 1`, stop other GPU processes, or select a higher-memory runtime.
-Activation capture batches are concatenated in original pair order.
+Use the batch-size-1 runtime profile, stop other GPU processes, or select a
+higher-memory GPU. Do not enable quantization or CPU offload as an unrecorded
+workaround. Activation shards preserve the original pair order.
+
+### Existing shard is rejected
+
+Do not edit or replace its metadata. Use the exact original run arguments, or
+start a new run ID. A corrupt or incompatible final shard is not overwritten
+because that could conceal mixed experiment conditions.
 
 ### Dataset validation failure
 
@@ -248,7 +297,7 @@ Confirm safe and unsafe sidecars have identical pair order, layer, capture site,
 source groups, and train-only split labels. Re-capture rather than manually editing a
 sidecar.
 
-## 12. Reproducible reporting checklist
+## 13. Reproducible reporting checklist
 
 For every reported run, retain:
 

@@ -50,3 +50,67 @@ def test_runtime_version_mismatch_fails_closed(monkeypatch):
     configured["runtime"] = {"exact_versions": {"transformer-lens": "3.1.0"}}
     errors = preflight.runtime_errors(configured)
     assert any("required 3.1.0" in error for error in errors)
+
+
+def test_runtime_profile_accepts_exact_qualified_environment(monkeypatch, tmp_path):
+    import sys
+    from types import ModuleType, SimpleNamespace
+    from safety_governor import preflight
+
+    torch = ModuleType("torch")
+    torch.cuda = SimpleNamespace(
+        is_available=lambda: True,
+        current_device=lambda: 0,
+        get_device_properties=lambda _index: SimpleNamespace(total_memory=40 * 1024 ** 3),
+        is_bf16_supported=lambda: True,
+        device_count=lambda: 1,
+    )
+    monkeypatch.setitem(sys.modules, "torch", torch)
+    monkeypatch.setenv("VAST_IMAGE", "pinned/image@sha256:example")
+    lock = tmp_path / "environment.txt"
+    lock.write_text("numpy==2.0.0\n", encoding="utf-8")
+    monkeypatch.setattr(
+        preflight.subprocess,
+        "run",
+        lambda *args, **kwargs: SimpleNamespace(returncode=0, stdout="numpy==2.0.0\n"),
+    )
+    profile = {
+        "dtype": "bfloat16",
+        "device": "cuda",
+        "gpu_count": 1,
+        "minimum_vram_gib": 24,
+        "allow_quantization": False,
+        "allow_cpu_offload": False,
+        "environment_lock": str(lock),
+    }
+    assert preflight.runtime_profile_errors(profile, tmp_path) == []
+
+
+def test_runtime_profile_rejects_silent_bfloat_fallback(monkeypatch, tmp_path):
+    import sys
+    from types import ModuleType, SimpleNamespace
+    from safety_governor import preflight
+
+    torch = ModuleType("torch")
+    torch.cuda = SimpleNamespace(
+        is_available=lambda: True,
+        current_device=lambda: 0,
+        get_device_properties=lambda _index: SimpleNamespace(total_memory=16 * 1024 ** 3),
+        is_bf16_supported=lambda: False,
+        device_count=lambda: 1,
+    )
+    monkeypatch.setitem(sys.modules, "torch", torch)
+    monkeypatch.delenv("VAST_IMAGE", raising=False)
+    monkeypatch.delenv("CONTAINER_IMAGE", raising=False)
+    errors = preflight.runtime_profile_errors({
+        "dtype": "bfloat16",
+        "device": "cuda",
+        "gpu_count": 1,
+        "minimum_vram_gib": 24,
+        "allow_quantization": False,
+        "allow_cpu_offload": False,
+        "environment_lock": str(tmp_path / "missing.txt"),
+    }, tmp_path)
+    assert any("unsupported" in error for error in errors)
+    assert any("VRAM" in error for error in errors)
+    assert any("base image" in error for error in errors)

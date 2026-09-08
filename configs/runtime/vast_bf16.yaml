@@ -1,0 +1,12 @@
+device: cuda
+dtype: bfloat16
+gpu_count: 1
+minimum_vram_gib: 24
+batch_size: 1
+artifact_root: /data/safety_governor/artifacts
+hf_cache_root: /data/safety_governor/huggingface
+environment_lock: /data/safety_governor/qualified-requirements.txt
+require_clean_git: true
+require_container_image: true
+allow_quantization: false
+allow_cpu_offload: false

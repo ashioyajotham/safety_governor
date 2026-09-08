@@ -8,5 +8,6 @@ pandas>=2.2
 pytest>=8,<9
 wandb>=0.17
 langdetect==1.0.9
+absl-py>=2,<3
 immutabledict==4.2.1
 nltk>=3.9,<4

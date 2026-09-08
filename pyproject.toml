@@ -8,5 +8,9 @@ version = "0.1.0"
 description = "Reproducible activation-steering experiments for runtime safety research"
 requires-python = ">=3.11"
 
+[tool.setuptools.packages.find]
+include = ["safety_governor*", "scripts*", "instruction_following_eval*"]
+exclude = ["data*", "datasets*", "configs*", "docs*", "tests*"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]

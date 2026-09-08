@@ -44,14 +44,24 @@ pca_direction = paired_delta_pca
 
 
 def probe_direction(safe: np.ndarray, unsafe: np.ndarray, l2: float = 1.0) -> np.ndarray:
-    """Closed-form ridge probe boundary normal; avoids hiding classifier defaults."""
-    # Deliberately small ridge probe: useful as a supervised comparison
-    # without importing a larger classifier stack.
+    """Sample-space ridge probe boundary normal with explicit regularization."""
+
+    if safe.ndim != 2 or unsafe.ndim != 2 or safe.shape[1:] != unsafe.shape[1:]:
+        raise ValueError("safe and unsafe must be [examples, hidden] matrices with equal hidden size")
+    if l2 <= 0:
+        raise ValueError("ridge regularization must be positive")
+    # Solve in sample space rather than hidden space. For Llama Stage-1 this
+    # reduces the system from roughly 4096x4096 to at most 166x166 while
+    # yielding the same ridge direction after centering out the intercept.
     x = np.concatenate((safe, unsafe), axis=0)
     y = np.concatenate((np.zeros(len(safe)), np.ones(len(unsafe))))
-    x = np.c_[np.ones(len(x)), x]
-    weights = np.linalg.solve(x.T @ x + l2 * np.eye(x.shape[1]), x.T @ y)
-    return normalize(weights[1:])
+    centered_x = x - x.mean(axis=0, keepdims=True)
+    centered_y = y - y.mean()
+    dual = np.linalg.solve(
+        centered_x @ centered_x.T + l2 * np.eye(len(centered_x)),
+        centered_y,
+    )
+    return normalize(centered_x.T @ dual)
 
 
 def bootstrap_cosine(extractor, safe: np.ndarray, unsafe: np.ndarray, samples: int = 100, seed: int = 0, group_ids: list[str] | None = None) -> np.ndarray:

@@ -20,8 +20,29 @@ class TokenizedBatch:
     final_response_positions: object
 
 
-def load_transformerlens_model(name: str, revision: str, device: str | None = None):
-    """Load a pinned HF revision through the TransformerLens v3 Bridge."""
+def resolve_torch_dtype(name: str):
+    """Resolve an explicit research-runtime dtype without silent fallback."""
+
+    import torch
+
+    normalized = name.lower().replace("torch.", "")
+    supported = {
+        "float32": torch.float32,
+        "float16": torch.float16,
+        "bfloat16": torch.bfloat16,
+    }
+    if normalized not in supported:
+        raise ValueError(f"unsupported model dtype: {name}")
+    return supported[normalized]
+
+
+def load_transformerlens_model(
+    name: str,
+    revision: str,
+    device: str | None = None,
+    dtype: str = "float32",
+):
+    """Load a pinned HF revision and explicit dtype through TransformerLens."""
     if not revision or revision in {"main", "master", "latest"}:
         raise ValueError("model revision must be an immutable commit or tag")
     try:
@@ -30,7 +51,11 @@ def load_transformerlens_model(name: str, revision: str, device: str | None = No
     except ImportError as exc:  # pragma: no cover
         raise RuntimeError("Install the pinned TransformerLens/Hugging Face dependencies.") from exc
     snapshot = snapshot_download(repo_id=name, revision=revision)
-    bridge = TransformerBridge.boot_transformers(snapshot, device=device)
+    bridge = TransformerBridge.boot_transformers(
+        snapshot,
+        device=device,
+        dtype=resolve_torch_dtype(dtype),
+    )
     bridge.enable_compatibility_mode()
     return bridge
 
@@ -88,6 +113,49 @@ def tokenize_instruction_completion(model, instructions: list[str], completions:
     return TokenizedBatch(tokens, attention, response_mask, final_positions)
 
 
+def residuals_at_response(
+    model,
+    instructions: list[str],
+    completions: list[str],
+    layers: list[int],
+    site: str = "response_mean",
+) -> dict[int, np.ndarray]:
+    """Capture one response representation for every requested model layer.
+
+    ``names_filter`` limits the TransformerLens cache to the requested residual
+    hooks. This is essential for 8B-scale runs, where retaining every internal
+    activation can dominate GPU memory.
+    """
+
+    if not layers or len(set(layers)) != len(layers) or any(layer < 0 for layer in layers):
+        raise ValueError("layers must be a non-empty list of unique non-negative integers")
+    batch = tokenize_instruction_completion(model, instructions, completions)
+    hook_names = {f"blocks.{layer}.hook_resid_pre" for layer in layers}
+    _, cache = model.run_with_cache(
+        batch.tokens,
+        attention_mask=batch.attention_mask,
+        return_type="logits",
+        names_filter=lambda name: name in hook_names,
+    )
+    selected_by_layer = {}
+    for layer in layers:
+        values = cache[f"blocks.{layer}.hook_resid_pre"]
+        if site == "final_response_token":
+            indices = values.new_tensor(range(values.shape[0]))
+            selected = values[
+                indices,
+                batch.final_response_positions.to(values.device),
+                :,
+            ]
+        elif site == "response_mean":
+            mask = batch.response_mask.to(values.device).unsqueeze(-1)
+            selected = (values * mask).sum(dim=1) / mask.sum(dim=1)
+        else:
+            raise ValueError(f"unsupported capture site: {site}")
+        selected_by_layer[layer] = selected.detach().float().cpu().numpy()
+    return selected_by_layer
+
+
 def residual_at_response(
     model,
     instructions: list[str],
@@ -95,27 +163,9 @@ def residual_at_response(
     layer: int,
     site: str = "response_mean",
 ):
-    """Capture response-token mean (primary) or final response token (sensitivity)."""
-    batch = tokenize_instruction_completion(model, instructions, completions)
-    try:
-        _, cache = model.run_with_cache(
-            batch.tokens, attention_mask=batch.attention_mask, return_type="logits"
-        )
-    except TypeError:  # supports small test doubles
-        _, cache = model.run_with_cache(batch.tokens, return_type="logits")
-    values = cache[f"blocks.{layer}.hook_resid_pre"]
-    if site == "final_response_token":
-        # Sensitivity site: one activation per completion, at its real final
-        # non-padding response token.
-        indices = values.new_tensor(range(values.shape[0]))
-        selected = values[indices, batch.final_response_positions.to(values.device), :]
-    elif site == "response_mean":
-        # Primary site: average only over response tokens, not prompt or padding.
-        mask = batch.response_mask.to(values.device).unsqueeze(-1)
-        selected = (values * mask).sum(dim=1) / mask.sum(dim=1)
-    else:
-        raise ValueError(f"unsupported capture site: {site}")
-    return selected.detach().float().cpu().numpy()
+    """Backward-compatible single-layer response capture helper."""
+
+    return residuals_at_response(model, instructions, completions, [layer], site)[layer]
 
 
 def residual_at_last_token(model, prompts: list[str], layer: int):

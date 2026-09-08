@@ -19,7 +19,11 @@ The package and GPT-2 smoke path are operational. On 2026-08-08, a pinned GPT-2 
 
 Stage-1 Llama plumbing now targets the frozen deceptive-reasoning release at `datasets/frozen/english_contrastive.jsonl`. Harmful compliance is a later Stage-1b rebuild: the previous JailbreakBench construction remains quarantined because it paired one corrupted refusal template with target prefixes rather than full responses. Swahili translation remains downstream of the English configuration freeze.
 
-The current bottleneck is GPU execution and artifact review, not annotation plumbing. The repo-first Colab runner lives at [`docs/notebooks/stage1/llama_stage1_colab.ipynb`](docs/notebooks/stage1/llama_stage1_colab.ipynb).
+The current bottleneck is GPU execution and artifact review, not annotation
+plumbing. The primary execution path is the resumable, provider-neutral Stage-1
+runner documented in the [Vast.ai runbook](docs/vast_ai_runbook.md). The
+[Colab notebook](docs/notebooks/stage1/llama_stage1_colab.ipynb) is retained as
+a secondary interface over that same runner.
 
 ## Scientific safeguards
 
@@ -35,6 +39,7 @@ Model repositories are pinned to immutable Hugging Face commits. Run manifests r
 safety_governor/             domain contracts, tokenization, capture, vectors, steering, evaluation
 scripts/                     curation gates, audits, materialization, splitting, experiment entrypoints
 configs/                     pinned smoke and Stage-1 experiment configurations
+configs/runtime/             explicit single-GPU precision and storage profiles
 instruction_following_eval/  vendored official IFEval checker at a pinned upstream commit
 datasets/fixtures/           non-research smoke fixtures
 datasets/manifests/          tracked source, reconstruction, smoke, and archive lineage metadata
@@ -44,7 +49,7 @@ data/working/                mutable candidate, review, quarantine, and report d
 data/archive/                superseded local artifacts (ignored; hashes tracked)
 docs/                        protocol, governance, curation, and research notebook material
 docs/notebooks/review/       local/Colab human-review workbench (thin UI over tested core)
-docs/notebooks/stage1/      Colab runner for Llama Stage-1 capture and vector extraction
+docs/notebooks/stage1/       fallback Colab interface to the shared Stage-1 runner
 tests/                       deterministic scientific and engineering checks
 artifacts/                   ignored run manifests, activation caches, and vectors
 ```
@@ -86,3 +91,28 @@ python -m scripts.prepare_review_workbench_bundle --output data/working/instruct
 ```
 
 The full project proposal is retained locally as `ilina_jrf_project.docx.pdf` and governs research scope, metrics, and timeline.
+
+## Stage-1 GPU entrypoint
+
+On a qualified single-GPU Vast instance with a volume mounted at `/data`:
+
+```bash
+read -rsp 'Hugging Face token: ' HF_TOKEN
+export HF_TOKEN
+export VAST_IMAGE='<exact-image-name-or-digest-from-vast-template>'
+git clone https://github.com/ashioyajotham/safety_governor.git
+cd safety_governor
+./scripts/bootstrap_vast.sh <immutable-git-commit>
+
+/data/safety_governor/venv/bin/python -m scripts.run_stage1 \
+  configs/llama3_8b.yaml \
+  --runtime-profile configs/runtime/vast_bf16.yaml \
+  --layers 0 \
+  --split train \
+  --run-id llama3-stage1-layer0 \
+  --resume
+```
+
+The first layer-0 run is the initial substantive Llama artifact if all gates
+pass. The later primary sweep uses layers `0,4,8,12,16,20,24,28`; validation
+and test are not part of vector fitting.

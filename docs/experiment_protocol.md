@@ -36,6 +36,16 @@ Sweep every fourth layer and coefficients `{1,2,5,10,20}`. Record target suppres
 
 Models use immutable Hugging Face revisions through TransformerLens Bridge v3 compatibility mode. Every run records config, seed, model revision, dataset SHA-256, Git SHA, dirty flag and diff hash, Python and package versions, Torch/CUDA facts, device, split, layer, capture site, metrics, and artifact paths.
 
+The primary Stage-1 runner uses one explicitly selected single-GPU precision
+profile. BF16 and FP16 are separate profiles; there is no silent fallback.
+Quantization, CPU offload, automatic device placement, and multi-GPU capture are
+outside the initial experiment contract. Multi-layer capture loads the model
+once and restricts the activation cache to the declared residual hooks.
+
+Interrupted runs may resume only from immutable batch shards whose run-spec hash,
+pair order, source-group order, layers, capture site, dataset hash, model revision,
+code revision, and dtype all match. Corrupt or incompatible shards fail closed.
+
 `python -m scripts.verify_environment <config>` enforces immutable model revisions and exact declared runtime versions before capture. Public inputs are commit- and hash-pinned in `datasets/manifests/source_corpora.json`; `datasets/manifests/reconstruction.json` lists the ignored restricted bundle and the commands that verify it.
 
 The annotation-artifact gate measures exact duplicates, concentrated prefixes/suffixes and five-grams, encoding damage, lexical cues, and near duplicates by archetype and polarity. The strict motivated-reasoning gate is:

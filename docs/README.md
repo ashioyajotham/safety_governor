@@ -4,7 +4,8 @@ Start with the document matching the task:
 
 | Document | Use |
 | --- | --- |
-| [`user_guide.md`](user_guide.md) | Install, verify, run Colab/CLI Stage 1, and interpret artifacts |
+| [`user_guide.md`](user_guide.md) | Install, verify, run Stage 1, and interpret artifacts |
+| [`vast_ai_runbook.md`](vast_ai_runbook.md) | Provision, qualify, resume, and export the primary Vast.ai GPU workflow |
 | [`experiment_protocol.md`](experiment_protocol.md) | Predeclared dataset, fitting, intervention, and evaluation rules |
 | [`dataset_curation_workflow.md`](dataset_curation_workflow.md) | Source-to-freeze curation lifecycle and release checklist |
 | [`dataset_governance.md`](dataset_governance.md) | Storage, restricted-data, approval, and publication policy |
