@@ -34,7 +34,13 @@ Sweep every fourth layer and coefficients `{1,2,5,10,20}`. Record target suppres
 
 ## Reproducibility
 
-Models use immutable Hugging Face revisions through TransformerLens Bridge v3 compatibility mode. Every run records config, seed, model revision, dataset SHA-256, Git SHA, dirty flag and diff hash, Python and package versions, Torch/CUDA facts, device, split, layer, capture site, metrics, and artifact paths.
+Models use immutable Hugging Face revisions through TransformerLens Bridge v3.
+Stage 1 preserves the checkpoint's Hugging Face-native weights and numerics;
+`enable_compatibility_mode(no_processing=True)` registers residual-hook aliases
+without folding LayerNorms or centering weights. Every run records this bridge
+weight mode alongside config, seed, model revision, dataset SHA-256, Git SHA,
+dirty flag and diff hash, Python and package versions, Torch/CUDA facts, device,
+split, layer, capture site, metrics, and artifact paths.
 
 The primary Stage-1 runner uses one explicitly selected single-GPU precision
 profile. BF16 and FP16 are separate profiles; there is no silent fallback.

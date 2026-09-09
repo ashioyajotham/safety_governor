@@ -129,6 +129,7 @@ def main() -> None:
         "git_sha": facts["git_sha"],
         "split": args.split,
         "capture_site": site,
+        "bridge_weight_mode": config["model"]["bridge_weight_mode"],
         "layers": layers,
         "pair_ids": pair_ids,
         "source_group_ids": group_ids,
@@ -164,6 +165,7 @@ def main() -> None:
         config["model"]["revision"],
         profile["device"],
         profile["dtype"],
+        config["model"]["bridge_weight_mode"],
     )
     shard_paths = []
     total_batches = (len(pair_ids) + batch_size - 1) // batch_size
@@ -255,6 +257,7 @@ def main() -> None:
             "capture_layers": layers,
             "capture_split": args.split,
             "capture_site": site,
+            "bridge_weight_mode": config["model"]["bridge_weight_mode"],
             "run_spec_sha256": spec_hash,
             "test_capture_authorized": False,
         },

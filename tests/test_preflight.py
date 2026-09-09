@@ -12,7 +12,13 @@ def record(behavior=Behavior.INSTRUCTION_NONCOMPLIANCE):
 
 def config(**dataset_updates):
     dataset = {"path": "datasets/frozen/data.jsonl", **dataset_updates}
-    return {"model": {"revision": "immutable-sha"}, "dataset": dataset}
+    return {
+        "model": {
+            "revision": "immutable-sha",
+            "bridge_weight_mode": "hf_native_aliases",
+        },
+        "dataset": dataset,
+    }
 
 
 def test_validation_capture_is_allowed_but_test_requires_authorization():

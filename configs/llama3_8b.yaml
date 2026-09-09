@@ -1,6 +1,7 @@
 model:
   name: meta-llama/Meta-Llama-3-8B-Instruct
   revision: 8afb486c1db24fe5011ec46dfbe5b5dccdb575c2
+  bridge_weight_mode: hf_native_aliases
 dataset:
   path: datasets/frozen/english_contrastive.jsonl
   language: en

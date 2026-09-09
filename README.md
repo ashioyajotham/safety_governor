@@ -117,6 +117,9 @@ The Vast bootstrap recreates the project virtual environment and installs the
 pinned PyTorch build from the official CUDA 12.8 wheel index. See
 [`docs/vast_ai_runbook.md`](docs/vast_ai_runbook.md) for Python 3.11 setup,
 qualification, tmux execution, export, and shutdown procedures.
+Stage 1 keeps the pinned Hugging Face weights unprocessed; TransformerLens
+compatibility supplies hook aliases only, and that choice is stored in each run
+specification and manifest.
 
 The first layer-0 run is the initial substantive Llama artifact if all gates
 pass. The later primary sweep uses layers `0,4,8,12,16,20,24,28`; validation

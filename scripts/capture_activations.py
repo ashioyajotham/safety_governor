@@ -80,7 +80,12 @@ def main() -> None:
     if any(a.instruction != b.instruction for a, b in zip(safe, unsafe)):
         raise SystemExit("safe/unsafe pairs must share the same instruction")
     model_config = config["model"]
-    model = load_transformerlens_model(model_config["name"], model_config["revision"], args.device)
+    model = load_transformerlens_model(
+        model_config["name"],
+        model_config["revision"],
+        args.device,
+        bridge_weight_mode=model_config["bridge_weight_mode"],
+    )
     site = args.site or config["extraction"]["capture_site"]
     batch_size = args.batch_size or int(config.get("extraction", {}).get("batch_size", len(pair_ids)))
     run_id = make_run_id("capture")

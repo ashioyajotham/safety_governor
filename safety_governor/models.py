@@ -41,10 +41,19 @@ def load_transformerlens_model(
     revision: str,
     device: str | None = None,
     dtype: str = "float32",
+    bridge_weight_mode: str = "hf_native_aliases",
 ):
-    """Load a pinned HF revision and explicit dtype through TransformerLens."""
+    """Load pinned HF-native weights with TransformerLens hook aliases.
+
+    Stage 1 deliberately preserves the Hugging Face checkpoint numerics. The
+    bridge compatibility layer is used only to register stable hook names; its
+    optional LayerNorm folding and weight centering would mutate the model and
+    temporarily upcast an 8B checkpoint to float32.
+    """
     if not revision or revision in {"main", "master", "latest"}:
         raise ValueError("model revision must be an immutable commit or tag")
+    if bridge_weight_mode != "hf_native_aliases":
+        raise ValueError(f"unsupported TransformerLens bridge weight mode: {bridge_weight_mode}")
     try:
         from huggingface_hub import snapshot_download
         from transformer_lens.model_bridge import TransformerBridge
@@ -56,7 +65,7 @@ def load_transformerlens_model(
         device=device,
         dtype=resolve_torch_dtype(dtype),
     )
-    bridge.enable_compatibility_mode()
+    bridge.enable_compatibility_mode(no_processing=True)
     return bridge
 
 

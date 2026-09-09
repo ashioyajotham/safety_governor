@@ -95,8 +95,8 @@ def test_model_loader_uses_pinned_snapshot_and_bridge_factory(monkeypatch):
         def boot_transformers(cls, snapshot, device, dtype):
             calls["boot"] = (snapshot, device, dtype)
             return cls()
-        def enable_compatibility_mode(self):
-            calls["compatibility"] = True
+        def enable_compatibility_mode(self, *, no_processing):
+            calls["compatibility"] = {"no_processing": no_processing}
     bridge_module.TransformerBridge = Bridge
     torch_module = ModuleType("torch")
     torch_module.float32 = object()
@@ -110,8 +110,17 @@ def test_model_loader_uses_pinned_snapshot_and_bridge_factory(monkeypatch):
     assert calls == {
         "snapshot": ("model", "commit"),
         "boot": ("immutable-snapshot", "cpu", torch_module.bfloat16),
-        "compatibility": True,
+        "compatibility": {"no_processing": True},
     }
+
+
+def test_model_loader_rejects_weight_processing_mode():
+    from safety_governor.models import load_transformerlens_model
+
+    with pytest.raises(ValueError, match="bridge weight mode"):
+        load_transformerlens_model(
+            "model", "commit", "cpu", "bfloat16", "processed_compatibility"
+        )
 
 
 def test_multi_layer_capture_returns_only_requested_layers():

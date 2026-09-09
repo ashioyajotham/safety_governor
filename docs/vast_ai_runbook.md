@@ -26,6 +26,12 @@ The initial experiment does not support quantization, CPU offload, automatic
 device maps, or multiple visible GPUs. These paths require separate numerical
 qualification before they can become research configurations.
 
+The model bridge retains Hugging Face-native weights. TransformerLens
+compatibility is enabled with `no_processing=True` only to expose the declared
+residual hook names. Full compatibility processing is excluded because it
+changes model coordinates and temporarily upcasts the 8B checkpoint to
+float32, exceeding a 40 GiB loading envelope.
+
 ## 2. Authenticate without persisting credentials
 
 Accept the pinned Llama repository licence in Hugging Face, then export the token

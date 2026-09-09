@@ -25,6 +25,9 @@ def runtime_errors(config: dict) -> list[str]:
     revision = str(config.get("model", {}).get("revision", ""))
     if not revision or revision.lower() in SYMBOLIC_REVISIONS:
         errors.append("model revision must be an immutable commit or tag")
+    bridge_weight_mode = str(config.get("model", {}).get("bridge_weight_mode", ""))
+    if bridge_weight_mode != "hf_native_aliases":
+        errors.append("model.bridge_weight_mode must be hf_native_aliases")
     for package, expected in config.get("runtime", {}).get("exact_versions", {}).items():
         try:
             actual = metadata.version(package)

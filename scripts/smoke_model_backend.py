@@ -21,7 +21,10 @@ def main() -> None:
     if errors:
         raise SystemExit("Environment preflight failed:\n- " + "\n- ".join(errors))
     model = load_transformerlens_model(
-        config["model"]["name"], config["model"]["revision"], args.device
+        config["model"]["name"],
+        config["model"]["revision"],
+        args.device,
+        bridge_weight_mode=config["model"]["bridge_weight_mode"],
     )
     batch = tokenize_instruction_completion(
         model,
