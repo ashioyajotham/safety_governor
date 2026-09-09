@@ -24,6 +24,14 @@ readonly VOLUME_ROOT="/data/safety_governor"
 readonly REPOSITORY_URL="${SAFETY_GOVERNOR_REPOSITORY_URL:-https://github.com/ashioyajotham/safety_governor.git}"
 readonly REPOSITORY_ROOT="${VOLUME_ROOT}/repository"
 readonly ENVIRONMENT_ROOT="${VOLUME_ROOT}/venv"
+readonly PYTHON_BIN="${PYTHON311_BIN:-python3.11}"
+readonly TORCH_VERSION="2.8.0"
+readonly PYTORCH_INDEX_URL="https://download.pytorch.org/whl/cu128"
+
+if ! command -v "${PYTHON_BIN}" >/dev/null 2>&1; then
+  echo "Python 3.11 is required; set PYTHON311_BIN to its executable path" >&2
+  exit 2
+fi
 
 mkdir -p "${VOLUME_ROOT}/artifacts" "${VOLUME_ROOT}/exports" "${VOLUME_ROOT}/huggingface"
 if [[ -d "${REPOSITORY_ROOT}/.git" ]]; then
@@ -37,8 +45,11 @@ if [[ -n "$(git -C "${REPOSITORY_ROOT}" status --porcelain)" ]]; then
   exit 1
 fi
 
-python3.11 -m venv "${ENVIRONMENT_ROOT}"
+"${PYTHON_BIN}" -m venv --clear "${ENVIRONMENT_ROOT}"
 "${ENVIRONMENT_ROOT}/bin/python" -m pip install --upgrade pip
+"${ENVIRONMENT_ROOT}/bin/python" -m pip install \
+  "torch==${TORCH_VERSION}" \
+  --index-url "${PYTORCH_INDEX_URL}"
 "${ENVIRONMENT_ROOT}/bin/python" -m pip install -r "${REPOSITORY_ROOT}/requirements.txt"
 cd "${REPOSITORY_ROOT}"
 export HF_HOME="${VOLUME_ROOT}/huggingface"

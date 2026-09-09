@@ -11,6 +11,16 @@ Rent one CUDA GPU with at least 24 GiB VRAM and attach a persistent volume of at
 least 100 GB at `/data`. Connect over SSH and run long commands inside `tmux`.
 Use a Python 3.11 CUDA/PyTorch image. Record the exact image identifier shown by
 Vast; the qualification manifest and `pip freeze` capture the remaining runtime.
+The bootstrap installs the repository-pinned PyTorch release from the official
+CUDA 12.8 wheel index; it does not inherit Torch from the base image.
+
+If the image provides Python 3.12 but no `python3.11` executable, create the
+bootstrap interpreter on the persistent volume before continuing:
+
+```bash
+conda create --prefix /data/safety_governor/python311 python=3.11 --yes
+export PYTHON311_BIN=/data/safety_governor/python311/bin/python3.11
+```
 
 The initial experiment does not support quantization, CPU offload, automatic
 device maps, or multiple visible GPUs. These paths require separate numerical
@@ -39,12 +49,18 @@ cd safety_governor
 ./scripts/bootstrap_vast.sh <immutable-git-commit> vast_bf16
 ```
 
-Bootstrap checks out the commit in detached mode, creates the environment and
-caches under `/data/safety_governor`, freezes the resolved environment in
+Bootstrap checks out the commit in detached mode, recreates a clean environment
+and caches under `/data/safety_governor`, freezes the resolved environment in
 `qualified-requirements.txt`, validates the frozen corpus, checks CUDA/VRAM/BF16
 support, and verifies access to the pinned model revision. Every run refuses an
 environment that differs from this qualification lock and copies the lock into
 its exportable run directory.
+
+The clean rebuild is intentional: it prevents packages from a failed or older
+qualification attempt from contaminating the environment. The Stage-1 Torch
+version is pinned in `requirements.txt`, and the Vast bootstrap resolves it from
+`https://download.pytorch.org/whl/cu128` so a future CUDA-major release cannot be
+selected implicitly.
 
 If BF16 qualification fails specifically because the GPU lacks BF16 support,
 rerun bootstrap with the `vast_fp16` argument. Never change profile dtype inside
