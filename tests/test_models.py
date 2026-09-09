@@ -150,3 +150,31 @@ def test_multi_layer_capture_returns_only_requested_layers():
     assert sorted(captured) == [0, 8]
     assert captured[0].item() == 1.0
     assert captured[8].item() == 9.0
+
+
+def test_response_capture_moves_inputs_to_model_device():
+    torch = pytest.importorskip("torch")
+
+    class Tokenizer:
+        chat_template = None
+        pad_token_id = 0
+        eos_token_id = 0
+        padding_side = "right"
+
+        def encode(self, text, add_special_tokens):
+            return [1, 2] if text.startswith("User:") else [3]
+
+    class FakeModel:
+        tokenizer = Tokenizer()
+
+        def parameters(self):
+            yield torch.nn.Parameter(torch.empty(1, device="meta"))
+
+        def run_with_cache(self, tokens, attention_mask, return_type, names_filter):
+            assert tokens.device.type == "meta"
+            assert attention_mask.device.type == "meta"
+            values = torch.ones((1, 3, 1))
+            return None, {"blocks.0.hook_resid_pre": values}
+
+    captured = residuals_at_response(FakeModel(), ["question"], ["answer"], [0])
+    assert captured[0].shape == (1, 1)

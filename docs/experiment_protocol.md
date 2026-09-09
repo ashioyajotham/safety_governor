@@ -47,6 +47,9 @@ profile. BF16 and FP16 are separate profiles; there is no silent fallback.
 Quantization, CPU offload, automatic device placement, and multi-GPU capture are
 outside the initial experiment contract. Multi-layer capture loads the model
 once and restricts the activation cache to the declared residual hooks.
+Token IDs and attention masks are moved explicitly to the model's parameter
+device before each forward pass; response masks and token indices are moved to
+the captured activation device before reduction.
 
 Interrupted runs may resume only from immutable batch shards whose run-spec hash,
 pair order, source-group order, layers, capture site, dataset hash, model revision,

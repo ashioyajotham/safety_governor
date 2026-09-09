@@ -139,10 +139,18 @@ def residuals_at_response(
     if not layers or len(set(layers)) != len(layers) or any(layer < 0 for layer in layers):
         raise ValueError("layers must be a non-empty list of unique non-negative integers")
     batch = tokenize_instruction_completion(model, instructions, completions)
+    try:
+        model_device = next(model.parameters()).device
+    except (AttributeError, StopIteration):
+        # Lightweight test doubles may not expose parameters. Real model
+        # backends always do, so retaining the token device is safe here.
+        model_device = batch.tokens.device
+    tokens = batch.tokens.to(model_device)
+    attention_mask = batch.attention_mask.to(model_device)
     hook_names = {f"blocks.{layer}.hook_resid_pre" for layer in layers}
     _, cache = model.run_with_cache(
-        batch.tokens,
-        attention_mask=batch.attention_mask,
+        tokens,
+        attention_mask=attention_mask,
         return_type="logits",
         names_filter=lambda name: name in hook_names,
     )
