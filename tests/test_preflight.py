@@ -1,5 +1,5 @@
 from safety_governor.domain import Behavior, ContrastiveRecord, Polarity
-from safety_governor.preflight import stage1_errors
+from safety_governor.preflight import persistent_storage_errors, stage1_errors
 
 
 def record(behavior=Behavior.INSTRUCTION_NONCOMPLIANCE):
@@ -120,3 +120,56 @@ def test_runtime_profile_rejects_silent_bfloat_fallback(monkeypatch, tmp_path):
     assert any("unsupported" in error for error in errors)
     assert any("VRAM" in error for error in errors)
     assert any("base image" in error for error in errors)
+
+
+def test_persistent_storage_rejects_container_filesystem(monkeypatch, tmp_path):
+    from types import SimpleNamespace
+    from safety_governor import preflight
+
+    monkeypatch.setattr(
+        preflight,
+        "_device_id",
+        lambda _path: 1,
+    )
+    monkeypatch.setattr(
+        preflight.shutil,
+        "disk_usage",
+        lambda _path: SimpleNamespace(total=100 * 1024 ** 3, free=80 * 1024 ** 3),
+    )
+    profile = {
+        "require_persistent_storage": True,
+        "persistent_storage_root": str(tmp_path),
+        "minimum_storage_gib": 80,
+        "minimum_free_storage_gib": 20,
+    }
+    errors = persistent_storage_errors(profile)
+    assert any("container filesystem" in error for error in errors)
+
+
+def test_persistent_storage_accepts_distinct_adequate_filesystem(monkeypatch, tmp_path):
+    from types import SimpleNamespace
+    from safety_governor import preflight
+
+    artifact_root = tmp_path / "artifacts"
+    cache_root = tmp_path / "huggingface"
+    lock = tmp_path / "qualified-requirements.txt"
+    monkeypatch.setattr(
+        preflight,
+        "_device_id",
+        lambda path: 1 if str(path) == "/" else 2,
+    )
+    monkeypatch.setattr(
+        preflight.shutil,
+        "disk_usage",
+        lambda _path: SimpleNamespace(total=100 * 1024 ** 3, free=80 * 1024 ** 3),
+    )
+    profile = {
+        "require_persistent_storage": True,
+        "persistent_storage_root": str(tmp_path),
+        "minimum_storage_gib": 80,
+        "minimum_free_storage_gib": 20,
+        "artifact_root": str(artifact_root),
+        "hf_cache_root": str(cache_root),
+        "environment_lock": str(lock),
+    }
+    assert persistent_storage_errors(profile) == []

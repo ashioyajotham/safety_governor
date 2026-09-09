@@ -2,6 +2,10 @@ device: cuda
 dtype: float16
 gpu_count: 1
 minimum_vram_gib: 24
+require_persistent_storage: true
+persistent_storage_root: /data/safety_governor
+minimum_storage_gib: 80
+minimum_free_storage_gib: 20
 batch_size: 1
 artifact_root: /data/safety_governor/artifacts
 hf_cache_root: /data/safety_governor/huggingface

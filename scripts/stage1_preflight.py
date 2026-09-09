@@ -7,7 +7,11 @@ from pathlib import Path
 
 from safety_governor.config import load
 from safety_governor.data import load_jsonl, validate_records
-from safety_governor.preflight import runtime_profile_errors, stage1_errors
+from safety_governor.preflight import (
+    persistent_storage_facts,
+    runtime_profile_errors,
+    stage1_errors,
+)
 from safety_governor.reproducibility import environment_facts
 from safety_governor.stage1 import load_runtime_profile
 
@@ -47,6 +51,8 @@ def main() -> None:
     print("Stage-1 preflight passed")
     for key, value in sorted(facts.items()):
         print(f"{key}: {value}")
+    for key, value in sorted(persistent_storage_facts(profile).items()):
+        print(f"storage_{key}: {value}")
 
 
 if __name__ == "__main__":

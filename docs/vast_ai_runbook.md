@@ -8,7 +8,10 @@ fitting uses train records only, and harmful compliance remains quarantined.
 ## 1. Provisioning contract
 
 Rent one CUDA GPU with at least 24 GiB VRAM and attach a persistent volume of at
-least 100 GB at `/data`. Connect over SSH and run long commands inside `tmux`.
+least 100 GB. This Vast template mounts its volume at `/workspace`; create
+`/data/safety_governor` as a symlink to `/workspace/safety_governor` before
+bootstrap so the versioned runtime profiles remain portable. Connect over SSH
+and run long commands inside `tmux`.
 Use a Python 3.11 CUDA/PyTorch image. Record the exact image identifier shown by
 Vast; the qualification manifest and `pip freeze` capture the remaining runtime.
 The bootstrap installs the repository-pinned PyTorch release from the official
@@ -46,6 +49,10 @@ export VAST_IMAGE='<exact-image-name-or-digest-from-vast-template>'
 Do not place the token in the repository, a YAML file, shell history, an artifact
 manifest, or an exported run bundle. `VAST_IMAGE` is non-secret provenance and is
 recorded in the run manifest.
+
+If Xet reports an internal background-writer failure during a model download,
+retain the partial cache and set `HF_HUB_DISABLE_XET=1` before restarting Python.
+The standard Hub transport resumes against the same pinned snapshot and cache.
 
 ## 3. Bootstrap an immutable checkout
 
@@ -146,8 +153,9 @@ until method, layer, intervention, and reporting decisions are frozen.
 cd /data/safety_governor/exports
 sha256sum -c llama3-stage1-response-mean.tar.gz.sha256
 
+cd /data/safety_governor/repository
 /data/safety_governor/venv/bin/python -m scripts.export_stage1_run \
-  --verify llama3-stage1-response-mean.tar.gz
+  --verify /data/safety_governor/exports/llama3-stage1-response-mean.tar.gz
 ```
 
 Copy the archive and checksum to an independent machine or approved storage.

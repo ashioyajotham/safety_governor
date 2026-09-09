@@ -120,6 +120,9 @@ qualification, tmux execution, export, and shutdown procedures.
 Stage 1 keeps the pinned Hugging Face weights unprocessed; TransformerLens
 compatibility supplies hook aliases only, and that choice is stored in each run
 specification and manifest.
+The runtime gate also requires the artifact, model-cache, and environment-lock
+paths to resolve onto a distinct persistent filesystem with the declared
+capacity and free-space reserve.
 
 The first layer-0 run is the initial substantive Llama artifact if all gates
 pass. The later primary sweep uses layers `0,4,8,12,16,20,24,28`; validation

@@ -9,6 +9,7 @@ from __future__ import annotations
 from importlib import metadata
 from pathlib import Path
 import os
+import shutil
 import subprocess
 import sys
 
@@ -16,6 +17,64 @@ from .domain import Behavior, ContrastiveRecord
 
 SYMBOLIC_REVISIONS = {"main", "master", "latest"}
 SUPPORTED_DTYPES = {"bfloat16", "float16", "float32"}
+
+
+def _device_id(path: str | Path) -> int:
+    """Return the backing filesystem device identifier for a resolved path."""
+
+    return os.stat(path).st_dev
+
+
+def persistent_storage_facts(profile: dict) -> dict:
+    """Return resolved filesystem facts recorded by Stage-1 manifests."""
+
+    if profile.get("require_persistent_storage") is not True:
+        return {}
+    root = Path(str(profile["persistent_storage_root"])).resolve()
+    usage = shutil.disk_usage(root)
+    return {
+        "configured_root": str(profile["persistent_storage_root"]),
+        "resolved_root": str(root),
+        "device_id": _device_id(root),
+        "container_device_id": _device_id("/"),
+        "total_bytes": usage.total,
+        "free_bytes_at_preflight": usage.free,
+    }
+
+
+def persistent_storage_errors(profile: dict) -> list[str]:
+    """Verify that research state is backed by a distinct, capacious filesystem."""
+
+    if profile.get("require_persistent_storage") is not True:
+        return []
+    errors = []
+    root_value = str(profile.get("persistent_storage_root", ""))
+    if not root_value:
+        return ["persistent_storage_root is required"]
+    root = Path(root_value)
+    if not root.exists():
+        return [f"persistent storage root does not exist: {root}"]
+    facts = persistent_storage_facts(profile)
+    resolved = Path(facts["resolved_root"])
+    if facts["device_id"] == facts["container_device_id"]:
+        errors.append(f"persistent storage root resolves to the container filesystem: {resolved}")
+    total_gib = facts["total_bytes"] / (1024 ** 3)
+    free_gib = facts["free_bytes_at_preflight"] / (1024 ** 3)
+    minimum_total = float(profile.get("minimum_storage_gib", 0))
+    minimum_free = float(profile.get("minimum_free_storage_gib", 0))
+    if total_gib < minimum_total:
+        errors.append(
+            f"persistent storage capacity {total_gib:.1f} GiB; profile requires {minimum_total:.1f} GiB"
+        )
+    if free_gib < minimum_free:
+        errors.append(
+            f"persistent storage free space {free_gib:.1f} GiB; profile requires {minimum_free:.1f} GiB"
+        )
+    for key in ("artifact_root", "hf_cache_root", "environment_lock"):
+        value = profile.get(key)
+        if value and not Path(value).resolve().is_relative_to(resolved):
+            errors.append(f"{key} is outside persistent storage: {value}")
+    return errors
 
 
 def runtime_errors(config: dict) -> list[str]:
@@ -41,7 +100,10 @@ def runtime_errors(config: dict) -> list[str]:
 def runtime_profile_errors(profile: dict, artifact_root: str | Path | None = None) -> list[str]:
     """Validate an explicit single-GPU runtime profile and storage target."""
 
-    errors = []
+    storage_profile = dict(profile)
+    if artifact_root is not None:
+        storage_profile["artifact_root"] = str(artifact_root)
+    errors = persistent_storage_errors(storage_profile)
     dtype = str(profile.get("dtype", ""))
     if dtype not in SUPPORTED_DTYPES:
         errors.append(f"runtime dtype must be one of {sorted(SUPPORTED_DTYPES)}")

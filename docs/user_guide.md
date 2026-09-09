@@ -79,7 +79,9 @@ These commands verify hashes; they do not upgrade a candidate's approval state.
 ## 4. Recommended Vast.ai workflow
 
 Vast.ai is the primary Stage-1 execution environment. Use a single CUDA GPU with
-at least 24 GiB VRAM, SSH plus `tmux`, and a persistent volume mounted at `/data`.
+at least 24 GiB VRAM, SSH plus `tmux`, and a persistent volume exposed through
+`/data/safety_governor`. On templates that mount the volume at `/workspace`, use
+a symlink from `/data/safety_governor` to `/workspace/safety_governor`.
 BF16 is preferred when supported; otherwise select the FP16 profile explicitly.
 The runner never silently changes precision.
 

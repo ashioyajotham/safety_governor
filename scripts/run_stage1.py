@@ -16,7 +16,11 @@ from safety_governor.config import load
 from safety_governor.data import dataset_sha256, load_jsonl, validate_records
 from safety_governor.domain import Polarity, RunManifest
 from safety_governor.models import load_transformerlens_model, residuals_at_response
-from safety_governor.preflight import runtime_profile_errors, stage1_errors
+from safety_governor.preflight import (
+    persistent_storage_facts,
+    runtime_profile_errors,
+    stage1_errors,
+)
 from safety_governor.reproducibility import environment_facts
 from safety_governor.stage1 import (
     atomic_write_json,
@@ -137,6 +141,7 @@ def main() -> None:
         "environment_lock_sha256": hashlib.sha256(
             Path(profile["environment_lock"]).read_bytes()
         ).hexdigest(),
+        "persistent_storage": persistent_storage_facts(profile),
     }
     run_root = artifact_root / args.run_id
     spec_hash = initialize_run(run_root, spec, resume=args.resume)
@@ -253,6 +258,7 @@ def main() -> None:
             **config,
             "runtime_profile": profile,
             "environment": environment_facts(profile["device"]),
+            "persistent_storage": spec["persistent_storage"],
             "dataset_sha256": spec["dataset_sha256"],
             "capture_layers": layers,
             "capture_split": args.split,
