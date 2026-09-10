@@ -20,17 +20,47 @@ The primary representation is the mean pre-residual activation over assistant re
 
 ## Fit and selection discipline
 
-Vector fitting is train-only by construction. Validation selects method, layer, coefficient, and intervention position. Test remains untouched until the analysis is frozen.
+Vector fitting is train-only by construction. Validation consumes fixed train
+directions and must not call a vector extractor. It selects method, layer,
+coefficient, and intervention position. Test remains untouched until the
+analysis is frozen in a verified selection lock.
 
-Capture accepts an explicit `train`, `validation`, or `test` split. Test capture fails closed unless `--allow-test-capture` is supplied after the analysis is frozen. Vector extraction rejects any activation metadata containing validation or test rows.
+Capture accepts an explicit `train`, `validation`, or `test` split. Test capture
+fails closed unless both `--allow-test-capture` and a verified
+`--selection-lock` are supplied. Vector extraction rejects any activation
+metadata containing validation or test rows.
 
 Methods are difference in means, paired-delta PCA on `unsafe - safe`, and a predeclared ridge probe. Bootstrap stability resamples source groups while preserving contrastive pairs.
 
+## Held-out validation
+
+The fixed candidates are difference in means at layers 12, 16, and 24, and the
+ridge probe at layers 24 and 28. Paired-delta PCA remains a reported train
+baseline but is not eligible for intervention because its bootstrap orientation
+was unstable. Validation reports AUC, paired ordering, projection margins,
+per-archetype results, and 2,000-sample source-group bootstrap intervals. The
+top two eligible directions advance to generation review.
+
+Generated responses are judged through blinded human review; vector projection
+is diagnostic rather than an approval signal. Relative suppression is reported
+only when the unsteered baseline has nonzero unsafe behavior. A zero-headroom
+validation set is non-diagnostic.
+
 ## Intervention
 
-Position-specific hooks require explicit non-padding positions or a response-token mask. Batched intervention must not use `[:, -1]` as a proxy for a real token.
+Directions point from safe to unsafe, so suppression uses
+`A'_L = A_L - alpha v` for positive magnitude `alpha`. `assistant_boundary`
+intervenes at the final prompt boundary. `generation_frontier` intervenes at
+the active final token on every autoregressive step. Completed-response labels
+are capture sites, not causal generation policies. Position-sensitive hooks
+must not use a padded final column as a real token.
 
-Sweep every fourth layer and coefficients `{1,2,5,10,20}`. Record target suppression or ASR, MMLU five-shot delta, and WikiText-103 perplexity delta. Provisional viability requires suppression above 70% and MMLU degradation below 3%.
+Validation generation uses magnitudes `{1,2,5}` for the two shortlisted
+directions and both causal policies. Record human-rated target suppression,
+MMLU five-shot absolute accuracy change, and WikiText-103 relative perplexity
+change. Capability benchmarks run only after behavioral selection. Provisional
+viability requires suppression above 70% and MMLU degradation below three
+percentage points.
 
 ## Reproducibility
 

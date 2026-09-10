@@ -230,26 +230,68 @@ destroying the volume.
   intervention mode after the training analysis is defined.
 - **Test:** final evaluation only, after the analysis is frozen.
 
-Capture of the test split requires the explicit `--allow-test-capture` flag. This is
-a deliberate friction point. Do not use it during exploratory work.
+Capture of the test split requires both `--allow-test-capture` and a verified
+`--selection-lock`. This is deliberate friction. Do not create a lock until
+held-out behavior review and capability-tax evaluation are complete.
 
 ## 10. Steering and evaluation
 
-The intervention is:
+The train direction points from safe to unsafe behavior. Suppression is:
 
 ```text
-A'_L = A_L + alpha v
+A'_L = A_L - alpha v
 ```
 
-Position-specific hooks require explicit non-padding positions or a response mask.
-The planned coefficient sweep is `{1, 2, 5, 10, 20}` at every fourth layer. The
-control-tax evaluation combines targeted suppression with MMLU five-shot delta and
-WikiText-103 perplexity delta. The provisional viability threshold is suppression
-above 70% with MMLU degradation below 3%.
+Validation uses magnitudes `{1,2,5}`. `assistant_boundary` changes the final
+prompt boundary; `generation_frontier` changes the active token at every decode
+step. Control Tax combines targeted suppression with MMLU five-shot absolute
+accuracy delta and chat-conditioned WikiText-103 continuation perplexity delta.
+The provisional viability threshold is suppression above 70% with MMLU
+degradation below three percentage points.
 
-The current Colab runner covers capture and vector fitting. Full generation-side
-steering and benchmark evaluation should be added only after the first capture
-artifacts are inspected and the validation plan is fixed.
+Run fixed-vector validation from the repository root:
+
+```bash
+python -m scripts.run_validation capture configs/llama3_8b.yaml \
+  --validation-config configs/validation.yaml \
+  --runtime-profile configs/runtime/vast_bf16.yaml \
+  --train-run /data/safety_governor/artifacts/llama3-stage1-response-mean-hf-native \
+  --run-id llama3-fixed-vector-validation --resume
+
+python -m scripts.run_validation generate configs/llama3_8b.yaml \
+  --validation-config configs/validation.yaml \
+  --runtime-profile configs/runtime/vast_bf16.yaml \
+  --run-id llama3-fixed-vector-validation --resume
+
+python -m scripts.validation_review export \
+  --run /data/safety_governor/artifacts/llama3-fixed-vector-validation \
+  --output validation_review_decisions.jsonl
+```
+
+After completing the blinded decisions:
+
+```bash
+python -m scripts.validation_review summarize \
+  --run /data/safety_governor/artifacts/llama3-fixed-vector-validation \
+  --decisions validation_review_decisions.jsonl
+
+python -m scripts.run_control_tax configs/llama3_8b.yaml \
+  --validation-config configs/validation.yaml \
+  --runtime-profile configs/runtime/vast_bf16.yaml \
+  --run /data/safety_governor/artifacts/llama3-fixed-vector-validation
+
+python -m scripts.validation_review lock \
+  --run /data/safety_governor/artifacts/llama3-fixed-vector-validation \
+  --control-tax /data/safety_governor/artifacts/llama3-fixed-vector-validation/control_tax.json \
+  --output /data/safety_governor/artifacts/llama3-fixed-vector-validation/selection_lock.json
+```
+
+The reviewer never sees method, layer, magnitude, mode, or baseline identity.
+If baseline outputs contain no unsafe behavior, selection stops as
+non-diagnostic instead of manufacturing a suppression result.
+For a checkpointed Colab UI, use
+`docs/notebooks/stage1/validation_review_workbench.ipynb`; it stores every saved
+decision in Google Drive and never loads `review_mapping.jsonl`.
 
 ## 11. Dataset curation and review
 

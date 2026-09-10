@@ -1,0 +1,29 @@
+schema_version: 1
+generation:
+  max_new_tokens: 128
+  decoding: greedy
+  magnitudes: [1, 2, 5]
+  token_modes: [assistant_boundary, generation_frontier]
+representation:
+  bootstrap_samples: 2000
+  shortlist_size: 2
+control_tax:
+  mmlu:
+    dataset: cais/mmlu
+    revision: c30699e8356da336a370243923dbaf21066bb9fe
+    configuration: all
+    few_shot_split: dev
+    evaluation_split: validation
+    shots: 5
+  wikitext:
+    dataset: Salesforce/wikitext
+    revision: b08601e04326c79dfdd32d625aee71d232d685c3
+    configuration: wikitext-103-raw-v1
+    evaluation_split: validation
+    chunk_tokens: 256
+    context_tokens: 64
+metric_contract:
+  mmlu_delta: absolute_accuracy_points
+  perplexity_delta: relative_change
+  targeted_suppression_threshold: 0.70
+  mmlu_degradation_floor: -0.03

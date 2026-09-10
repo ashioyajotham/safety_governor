@@ -3,7 +3,12 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
-from safety_governor.models import residual_at_last_token, residual_at_response, residuals_at_response
+from safety_governor.models import (
+    generate_with_steering,
+    residual_at_last_token,
+    residual_at_response,
+    residuals_at_response,
+)
 
 
 def test_residual_capture_uses_last_non_padding_token():
@@ -178,3 +183,44 @@ def test_response_capture_moves_inputs_to_model_device():
 
     captured = residuals_at_response(FakeModel(), ["question"], ["answer"], [0])
     assert captured[0].shape == (1, 1)
+
+
+def test_generation_steers_opposite_unsafe_direction_at_frontier():
+    torch = pytest.importorskip("torch")
+
+    class Tokenizer:
+        chat_template = None
+        pad_token_id = 0
+        eos_token_id = 9
+
+        def encode(self, text, add_special_tokens):
+            return [1, 2] if text.startswith("User:") else [3]
+
+        def decode(self, tokens, skip_special_tokens):
+            return "generated"
+
+    class FakeModel:
+        tokenizer = Tokenizer()
+
+        def __init__(self):
+            self.weight = torch.nn.Parameter(torch.zeros(1))
+            self.activations = []
+
+        def parameters(self):
+            yield self.weight
+
+        def run_with_hooks(self, tokens, attention_mask, return_type, fwd_hooks):
+            activation = torch.zeros((1, tokens.shape[1], 2))
+            self.activations.append(fwd_hooks[0][1](activation))
+            logits = torch.zeros((1, tokens.shape[1], 10))
+            logits[0, -1, 3 if len(self.activations) == 1 else 9] = 1
+            return logits
+
+    model = FakeModel()
+    assert generate_with_steering(
+        model, "prompt", np.array([1., 2.]), layer=0, magnitude=2,
+        token_mode="generation_frontier", max_new_tokens=2,
+    ) == "generated"
+    assert torch.equal(model.activations[0][0, -1], torch.tensor([-2., -4.]))
+    assert torch.equal(model.activations[1][0, -1], torch.tensor([-2., -4.]))
+    assert torch.equal(model.activations[1][0, 0], torch.zeros(2))

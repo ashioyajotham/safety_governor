@@ -14,5 +14,9 @@ Start with the document matching the task:
 | [`swahili_translation_protocol.md`](swahili_translation_protocol.md) | English-to-Swahili translation and review gate |
 | [`repository_layout.md`](repository_layout.md) | Tracked, ignored, working, frozen, and artifact locations |
 
+The Stage-1 notebook directory contains both the fallback GPU runner and the
+configuration-blind validation review workbench. The latter checkpoints each
+human judgment to Google Drive so a Colab disconnect does not erase progress.
+
 The Google Docs research notebook is the chronological project log. The Markdown
 documents above are the maintained operational and methodological references.

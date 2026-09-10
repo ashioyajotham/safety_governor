@@ -11,7 +11,10 @@ This project studies whether a narrow inference-time residual-stream interventio
 3. Do English-derived directions transfer to semantically matched Swahili prompts?
 4. As a stretch question, can a residual-stream probe trigger steering conditionally?
 
-The intervention is `A'_L = A_L + alpha v`. The predeclared provisional viability criterion is targeted suppression above 70% with MMLU degradation below 3%.
+Train directions point from safe to unsafe behavior. Suppression therefore uses
+`A'_L = A_L - alpha v` for positive magnitude `alpha`. The predeclared
+provisional viability criterion is targeted suppression above 70% with MMLU
+accuracy degradation below three percentage points.
 
 ## Current research gate
 
@@ -19,9 +22,13 @@ The package and GPT-2 smoke path are operational. On 2026-08-08, a pinned GPT-2 
 
 Stage-1 Llama plumbing now targets the frozen deceptive-reasoning release at `datasets/frozen/english_contrastive.jsonl`. Harmful compliance is a later Stage-1b rebuild: the previous JailbreakBench construction remains quarantined because it paired one corrupted refusal template with target prefixes rather than full responses. Swahili translation remains downstream of the English configuration freeze.
 
-The current bottleneck is GPU execution and artifact review, not annotation
-plumbing. The primary execution path is the resumable, provider-neutral Stage-1
-runner documented in the [Vast.ai runbook](docs/vast_ai_runbook.md). The
+The first substantive Llama-3 train sweep is complete and independently
+checksummed: 88 pairs, 61 source groups, layers `0,4,8,12,16,20,24,28`, and
+finite aligned `(88,4096)` response-mean activations. This establishes train
+direction stability only. The current gate is fixed-direction validation on 16
+held-out pairs, followed by blinded intervention review and capability-tax
+measurement. The primary execution path is documented in the
+[Vast.ai runbook](docs/vast_ai_runbook.md). The
 [Colab notebook](docs/notebooks/stage1/llama_stage1_colab.ipynb) is retained as
 a secondary interface over that same runner.
 
@@ -29,7 +36,14 @@ a secondary interface over that same runner.
 
 Experiment records separate `instruction` from `completion`. Annotation notes, provider metadata, reviewer fields, and generation traces are excluded by the materialization step and cannot enter model input.
 
-Source groups, rather than pair IDs alone, are assigned to train/validation/test. Vector fitting is train-only. Capture declares its split explicitly; test capture additionally requires an authorization flag. The primary extraction site is the mean over response tokens; the final response token is a sensitivity analysis. PCA operates on aligned `unsafe - safe` deltas. Bootstrap resampling preserves source groups. Position-specific steering requires explicit non-padding positions.
+Source groups, rather than pair IDs alone, are assigned to train/validation/test.
+Vector fitting is train-only. Validation consumes fixed train vectors and cannot
+refit them. Test capture requires both explicit authorization and a verified
+selection lock. The primary extraction site is the mean over response tokens;
+the final response token is a sensitivity analysis. PCA operates on aligned
+`unsafe - safe` deltas. Bootstrap resampling preserves source groups.
+Inference interventions use explicit `assistant_boundary` or
+`generation_frontier` causal policies.
 
 Model repositories are pinned to immutable Hugging Face commits. Run manifests record dataset and code state, environment facts, split, layer, and capture site.
 
@@ -49,7 +63,7 @@ data/working/                mutable candidate, review, quarantine, and report d
 data/archive/                superseded local artifacts (ignored; hashes tracked)
 docs/                        protocol, governance, curation, and research notebook material
 docs/notebooks/review/       local/Colab human-review workbench (thin UI over tested core)
-docs/notebooks/stage1/       fallback Colab interface to the shared Stage-1 runner
+docs/notebooks/stage1/       fallback GPU runner and blinded validation review UI
 tests/                       deterministic scientific and engineering checks
 artifacts/                   ignored run manifests, activation caches, and vectors
 ```
@@ -127,3 +141,24 @@ capacity and free-space reserve.
 The first layer-0 run is the initial substantive Llama artifact if all gates
 pass. The later primary sweep uses layers `0,4,8,12,16,20,24,28`; validation
 and test are not part of vector fitting.
+
+## Fixed-vector validation
+
+```bash
+python -m scripts.run_validation capture configs/llama3_8b.yaml \
+  --validation-config configs/validation.yaml \
+  --runtime-profile configs/runtime/vast_bf16.yaml \
+  --train-run /data/safety_governor/artifacts/llama3-stage1-response-mean-hf-native \
+  --run-id llama3-fixed-vector-validation --resume
+
+python -m scripts.run_validation generate configs/llama3_8b.yaml \
+  --validation-config configs/validation.yaml \
+  --runtime-profile configs/runtime/vast_bf16.yaml \
+  --run-id llama3-fixed-vector-validation --resume
+```
+
+The first command evaluates five fixed train directions on held-out references.
+With the intended two-vector shortlist, the second produces 208 responses for
+blinded human review; a smaller eligible shortlist produces proportionally
+fewer. See the user guide for review import, Control Tax, and selection-lock
+commands.

@@ -20,6 +20,7 @@ from safety_governor.domain import Polarity, RunManifest
 from safety_governor.models import load_transformerlens_model, residual_at_response
 from safety_governor.preflight import stage1_errors
 from safety_governor.reproducibility import environment_facts
+from safety_governor.validation import verify_selection_lock
 
 
 def capture_records(model, records, layer: int, site: str, batch_size: int) -> np.ndarray:
@@ -46,6 +47,7 @@ def main() -> None:
     parser.add_argument("--layer", type=int, required=True)
     parser.add_argument("--split", choices=("train", "validation", "test"), default="train")
     parser.add_argument("--allow-test-capture", action="store_true")
+    parser.add_argument("--selection-lock", default=None)
     parser.add_argument("--site", choices=("response_mean", "final_response_token"), default=None)
     parser.add_argument("--device", default=None)
     parser.add_argument("--artifacts", default="artifacts")
@@ -61,6 +63,15 @@ def main() -> None:
     )
     if preflight:
         raise SystemExit("Stage-1 preflight failed:\n- " + "\n- ".join(preflight))
+    selection = None
+    if args.split == "test":
+        if not args.selection_lock:
+            raise SystemExit("test capture requires --selection-lock")
+        selection = verify_selection_lock(args.selection_lock)
+        if selection["dataset_sha256"] != dataset_sha256(config["dataset"]["path"]):
+            raise SystemExit("selection lock dataset does not match test capture dataset")
+        if selection["model_revision"] != config["model"]["revision"]:
+            raise SystemExit("selection lock model revision does not match test capture model")
     # Filtering happens after preflight so checks can inspect the whole corpus,
     # but only the requested split is captured.
     records = [record for record in records if record.split == args.split]
@@ -117,6 +128,7 @@ def main() -> None:
         "capture_site": site,
         "capture_batch_size": batch_size,
         "test_capture_authorized": bool(args.allow_test_capture),
+        "selection_lock_sha256": selection["selection_sha256"] if selection else None,
     })
     path = write_manifest(args.artifacts, manifest)
     print(f"Captured {site} at layer {args.layer}; run manifest: {path}")

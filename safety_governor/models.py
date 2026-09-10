@@ -82,6 +82,19 @@ def _prefix_ids(tokenizer, instruction: str) -> list[int]:
     ))
 
 
+def _generation_stop_ids(tokenizer) -> set[int]:
+    """Return EOS plus an available chat end-of-turn token."""
+
+    values = {getattr(tokenizer, "eos_token_id", None)}
+    converter = getattr(tokenizer, "convert_tokens_to_ids", None)
+    if converter is not None:
+        end_of_turn = converter("<|eot_id|>")
+        unknown = getattr(tokenizer, "unk_token_id", None)
+        if end_of_turn is not None and end_of_turn != unknown:
+            values.add(end_of_turn)
+    return {int(value) for value in values if value is not None}
+
+
 def tokenize_instruction_completion(model, instructions: list[str], completions: list[str]) -> TokenizedBatch:
     """Tokenize with an explicit assistant boundary and return response positions."""
     if len(instructions) != len(completions) or not instructions:
@@ -200,3 +213,215 @@ def residual_at_last_token(model, prompts: list[str], layer: int):
             raise ValueError("tokenized prompt contains only padding")
     batch = tokens.new_tensor(range(tokens.shape[0]))
     return value[batch, positions, :].detach().float().cpu().numpy()
+
+
+def generate_with_steering(
+    model,
+    instruction: str,
+    vector: np.ndarray,
+    *,
+    layer: int,
+    magnitude: float,
+    token_mode: str,
+    max_new_tokens: int = 128,
+) -> str:
+    """Greedily generate one response under an explicit causal intervention.
+
+    Stored Stage-1 vectors point from safe to unsafe behavior.  This helper
+    therefore applies ``-magnitude * vector``.  ``assistant_boundary`` changes
+    only the final prompt token on every recomputed forward pass, while
+    ``generation_frontier`` changes the current final active token at each
+    autoregressive step.  Full recomputation makes the two policies explicit
+    and avoids relying on implementation-specific KV-cache hook behavior.
+    """
+
+    if magnitude <= 0:
+        raise ValueError("steering magnitude must be positive")
+    if token_mode not in {"assistant_boundary", "generation_frontier"}:
+        raise ValueError(f"unsupported generation token mode: {token_mode}")
+    if max_new_tokens <= 0:
+        raise ValueError("max_new_tokens must be positive")
+    import torch
+
+    tokenizer = model.tokenizer
+    prefix = _prefix_ids(tokenizer, instruction)
+    if not prefix:
+        raise ValueError("instruction produced an empty generation prefix")
+    try:
+        device = next(model.parameters()).device
+    except (AttributeError, StopIteration):
+        device = torch.device("cpu")
+    tokens = torch.tensor([prefix], dtype=torch.long, device=device)
+    direction = torch.as_tensor(vector, device=device)
+    generated: list[int] = []
+    hook = f"blocks.{layer}.hook_resid_pre"
+    boundary_position = len(prefix) - 1
+    eos_ids = _generation_stop_ids(tokenizer)
+
+    for _ in range(max_new_tokens):
+        position = boundary_position if token_mode == "assistant_boundary" else tokens.shape[1] - 1
+
+        def intervention(activation, hook=None):
+            changed = activation.clone()
+            local = direction.to(device=changed.device, dtype=changed.dtype)
+            changed[0, position, :] -= magnitude * local
+            return changed
+
+        attention = torch.ones_like(tokens, dtype=torch.bool)
+        logits = model.run_with_hooks(
+            tokens,
+            attention_mask=attention,
+            return_type="logits",
+            fwd_hooks=[(hook, intervention)],
+        )
+        next_token = int(torch.argmax(logits[0, -1]).item())
+        if next_token in eos_ids:
+            break
+        generated.append(next_token)
+        tokens = torch.cat((tokens, torch.tensor([[next_token]], device=device)), dim=1)
+    return tokenizer.decode(generated, skip_special_tokens=True)
+
+
+def generate_unsteered(model, instruction: str, *, max_new_tokens: int = 128) -> str:
+    """Greedily generate a deterministic unsteered baseline response."""
+
+    if max_new_tokens <= 0:
+        raise ValueError("max_new_tokens must be positive")
+    import torch
+
+    tokenizer = model.tokenizer
+    prefix = _prefix_ids(tokenizer, instruction)
+    try:
+        device = next(model.parameters()).device
+    except (AttributeError, StopIteration):
+        device = torch.device("cpu")
+    tokens = torch.tensor([prefix], dtype=torch.long, device=device)
+    generated: list[int] = []
+    eos_ids = _generation_stop_ids(tokenizer)
+    for _ in range(max_new_tokens):
+        logits = model(tokens, attention_mask=torch.ones_like(tokens, dtype=torch.bool))
+        if hasattr(logits, "logits"):
+            logits = logits.logits
+        next_token = int(torch.argmax(logits[0, -1]).item())
+        if next_token in eos_ids:
+            break
+        generated.append(next_token)
+        tokens = torch.cat((tokens, torch.tensor([[next_token]], device=device)), dim=1)
+    return tokenizer.decode(generated, skip_special_tokens=True)
+
+
+def next_token_choice_scores(
+    model,
+    prompt: str,
+    choices: list[str],
+    *,
+    vector: np.ndarray | None = None,
+    layer: int | None = None,
+    magnitude: float | None = None,
+) -> np.ndarray:
+    """Return next-token scores for choices with an optional unsafe-suppressing hook."""
+
+    import torch
+
+    if not choices:
+        raise ValueError("at least one next-token choice is required")
+    tokenizer = model.tokenizer
+    prefix = _prefix_ids(tokenizer, prompt)
+    choice_ids = []
+    for choice in choices:
+        encoded = list(tokenizer.encode(f" {choice}", add_special_tokens=False))
+        if not encoded:
+            raise ValueError(f"choice tokenized to empty text: {choice}")
+        choice_ids.append(encoded[0])
+    try:
+        device = next(model.parameters()).device
+    except (AttributeError, StopIteration):
+        device = torch.device("cpu")
+    tokens = torch.tensor([prefix], dtype=torch.long, device=device)
+    attention = torch.ones_like(tokens, dtype=torch.bool)
+    if vector is None:
+        output = model(tokens, attention_mask=attention)
+        logits = output.logits if hasattr(output, "logits") else output
+    else:
+        if layer is None or magnitude is None or magnitude <= 0:
+            raise ValueError("steered choice scoring requires layer and positive magnitude")
+        direction = torch.as_tensor(vector, device=device)
+
+        def intervention(activation, hook=None):
+            changed = activation.clone()
+            changed[0, -1, :] -= magnitude * direction.to(changed.device, changed.dtype)
+            return changed
+
+        logits = model.run_with_hooks(
+            tokens,
+            attention_mask=attention,
+            return_type="logits",
+            fwd_hooks=[(f"blocks.{layer}.hook_resid_pre", intervention)],
+        )
+    return logits[0, -1, choice_ids].detach().float().cpu().numpy()
+
+
+def response_negative_log_likelihood(
+    model,
+    instruction: str,
+    completion: str,
+    *,
+    vector: np.ndarray | None = None,
+    layer: int | None = None,
+    magnitude: float | None = None,
+    token_mode: str = "generation_frontier",
+) -> tuple[float, int]:
+    """Score response tokens under baseline or matching teacher-forced steering.
+
+    For ``generation_frontier`` the unsafe-suppressing direction is applied at
+    the assistant boundary and every response input position that predicts a
+    subsequent response token. ``assistant_boundary`` changes only the prompt
+    boundary. The returned sum and token count can be aggregated exactly.
+    """
+
+    import torch
+    import torch.nn.functional as functional
+
+    if token_mode not in {"assistant_boundary", "generation_frontier"}:
+        raise ValueError(f"unsupported token mode: {token_mode}")
+    tokenizer = model.tokenizer
+    prefix = _prefix_ids(tokenizer, instruction)
+    response = list(tokenizer.encode(completion, add_special_tokens=False))
+    if not response:
+        raise ValueError("completion tokenized to an empty response")
+    try:
+        device = next(model.parameters()).device
+    except (AttributeError, StopIteration):
+        device = torch.device("cpu")
+    tokens = torch.tensor([prefix + response], dtype=torch.long, device=device)
+    attention = torch.ones_like(tokens, dtype=torch.bool)
+    if vector is None:
+        output = model(tokens, attention_mask=attention)
+        logits = output.logits if hasattr(output, "logits") else output
+    else:
+        if layer is None or magnitude is None or magnitude <= 0:
+            raise ValueError("steered likelihood requires layer and positive magnitude")
+        direction = torch.as_tensor(vector, device=device)
+        boundary = len(prefix) - 1
+        last_predictor = len(prefix) + len(response) - 2
+
+        def intervention(activation, hook=None):
+            changed = activation.clone()
+            local = direction.to(changed.device, changed.dtype)
+            if token_mode == "assistant_boundary":
+                changed[0, boundary, :] -= magnitude * local
+            else:
+                changed[0, boundary:last_predictor + 1, :] -= magnitude * local
+            return changed
+
+        logits = model.run_with_hooks(
+            tokens,
+            attention_mask=attention,
+            return_type="logits",
+            fwd_hooks=[(f"blocks.{layer}.hook_resid_pre", intervention)],
+        )
+    start = len(prefix) - 1
+    predictors = logits[0, start:start + len(response), :]
+    targets = tokens[0, len(prefix):len(prefix) + len(response)]
+    loss = functional.cross_entropy(predictors, targets, reduction="sum")
+    return float(loss.detach().cpu()), len(response)

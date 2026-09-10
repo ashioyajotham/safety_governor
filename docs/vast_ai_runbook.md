@@ -143,7 +143,41 @@ After reviewing that run, repeat with a new run ID and
 capture validation until the training analysis is defined. Do not capture test
 until method, layer, intervention, and reporting decisions are frozen.
 
-## 7. Export and shutdown
+## 7. Fixed-vector validation
+
+Use the completed primary train run as an immutable parent. The validation
+runner captures the 16 held-out pairs and scores fixed vectors only:
+
+```bash
+/data/safety_governor/venv/bin/python -m scripts.run_validation capture \
+  configs/llama3_8b.yaml \
+  --validation-config configs/validation.yaml \
+  --runtime-profile configs/runtime/vast_bf16.yaml \
+  --train-run /data/safety_governor/artifacts/llama3-stage1-response-mean-hf-native \
+  --run-id llama3-fixed-vector-validation --resume
+
+/data/safety_governor/venv/bin/python -m scripts.run_validation generate \
+  configs/llama3_8b.yaml \
+  --validation-config configs/validation.yaml \
+  --runtime-profile configs/runtime/vast_bf16.yaml \
+  --run-id llama3-fixed-vector-validation --resume
+```
+
+With the intended two-vector shortlist, generation produces 208 outputs. A
+smaller eligible shortlist produces proportionally fewer. Export the blinded
+decision template, copy it off-host, and stop the GPU while reviewing it:
+
+```bash
+/data/safety_governor/venv/bin/python -m scripts.validation_review export \
+  --run /data/safety_governor/artifacts/llama3-fixed-vector-validation \
+  --output /data/safety_governor/exports/validation_review_decisions.jsonl
+```
+
+After review, summarize the decisions and run Control Tax. MMLU and WikiText
+dataset revisions are pinned in `configs/validation.yaml`. Do not capture test
+until `selection_lock.json` exists and passes `scripts.validation_review verify`.
+
+## 8. Export and shutdown
 
 ```bash
 /data/safety_governor/venv/bin/python -m scripts.export_stage1_run \
