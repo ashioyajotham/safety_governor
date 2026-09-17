@@ -3,6 +3,8 @@ import json
 import numpy as np
 import pytest
 
+from scripts.run_validation import _load_parent, _validation_dataset_path
+from scripts.audit_validation_extension import audit_extension
 from safety_governor.validation import (
     audit_validation_run,
     choose_best_behavior_configuration,
@@ -21,6 +23,84 @@ from safety_governor.validation import (
 def test_validation_audit_fails_closed_on_incomplete_run(tmp_path):
     with pytest.raises(ValueError, match="missing required artifacts"):
         audit_validation_run(tmp_path)
+
+
+def test_validation_dataset_path_can_use_a_separate_extension():
+    config = {"dataset": {"path": "frozen.jsonl"}}
+    assert str(_validation_dataset_path(config, {})) == "frozen.jsonl"
+    extension = {"dataset": {"path": "validation-v2.jsonl"}}
+    assert str(_validation_dataset_path(config, extension)) == "validation-v2.jsonl"
+
+
+def test_parent_verification_remains_bound_to_training_dataset(tmp_path, monkeypatch):
+    monkeypatch.setattr("scripts.run_validation.audit_completed_run", lambda _: {})
+    dataset = tmp_path / "train.jsonl"
+    dataset.write_text("training bytes\n")
+    parent = tmp_path / "parent"
+    parent.mkdir()
+    config = {
+        "dataset": {"path": str(dataset)},
+        "model": {
+            "name": "model", "revision": "revision",
+            "bridge_weight_mode": "hf_native_aliases",
+        },
+        "extraction": {"capture_site": "response_mean"},
+    }
+    from safety_governor.data import dataset_sha256
+    spec = {
+        "dataset_sha256": dataset_sha256(dataset),
+        "capture_site": "response_mean",
+        "bridge_weight_mode": "hf_native_aliases",
+        "config": {"model": config["model"]},
+    }
+    (parent / "run_spec.json").write_text(json.dumps(spec))
+    (parent / "manifest.json").write_text("{}")
+    loaded, _ = _load_parent(parent, config)
+    assert loaded == spec
+
+
+def test_validation_extension_audit_enforces_role_and_source_isolation(tmp_path):
+    base = tmp_path / "base.jsonl"
+    base_rows = []
+    for polarity in ("safe", "unsafe"):
+        base_rows.append({
+            "pair_id": "base-pair", "behavior": "deceptive_reasoning",
+            "archetype": "motivated_reasoning", "polarity": polarity,
+            "language": "en", "expected_behavior": "base", "source": "base-source",
+            "reviewer_status": "approved", "split": "train",
+            "instruction": "base instruction", "completion": f"base {polarity}",
+            "source_group_id": "base-group",
+        })
+    base.write_text("\n".join(json.dumps(row) for row in base_rows) + "\n")
+    extension = tmp_path / "extension.jsonl"
+    rows = []
+    archetypes = (
+        "arithmetic_reasoning_error", "factual_confabulation",
+        "false_premise_agreement", "motivated_reasoning",
+    )
+    for role in ("calibration", "confirmatory"):
+        for archetype in archetypes:
+            pair_id = f"{role}-{archetype}"
+            for polarity in ("safe", "unsafe"):
+                rows.append({
+                    "pair_id": pair_id, "behavior": "deceptive_reasoning",
+                    "archetype": archetype, "polarity": polarity, "language": "en",
+                    "expected_behavior": "extension", "source": "pinned-source",
+                    "reviewer_status": "approved", "split": "validation",
+                    "instruction": f"{pair_id} instruction",
+                    "completion": f"{pair_id} {polarity}",
+                    "source_group_id": f"group-{pair_id}",
+                    "validation_role": role, "source_record_id": pair_id,
+                    "source_revision": "immutable-revision",
+                })
+    extension.write_text("\n".join(json.dumps(row) for row in rows) + "\n")
+    report = audit_extension(extension, base, minimum_pairs_per_archetype_role=1)
+    assert report["pairs"] == 8
+    rows[0]["source_group_id"] = "base-group"
+    rows[1]["source_group_id"] = "base-group"
+    extension.write_text("\n".join(json.dumps(row) for row in rows) + "\n")
+    with pytest.raises(ValueError, match="overlaps the frozen corpus"):
+        audit_extension(extension, base, minimum_pairs_per_archetype_role=1)
 
 
 def test_rank_auc_handles_order_and_ties():

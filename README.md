@@ -167,3 +167,7 @@ Behavioral review fails closed: the best observed configuration is retained
 for analysis, but Control Tax and selection locking are authorized only when
 relative suppression is strictly above 70% and every target archetype has
 nonzero unsafe baseline headroom.
+
+When those conditions are not measurable, use the source-isolated
+[validation-v2 redesign](docs/validation_v2_design.md); never substitute the
+untouched test split.

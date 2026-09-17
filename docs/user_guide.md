@@ -256,6 +256,10 @@ target archetype has nonzero unsafe baseline headroom. If the behavioral gate
 fails, do not run Control Tax and do not create a selection lock; revise the
 validation design or report the negative result instead.
 
+The source-isolated redesign procedure is documented in
+[`validation_v2_design.md`](validation_v2_design.md). Its extension audit must
+pass before calibration or confirmatory generation.
+
 Run fixed-vector validation from the repository root:
 
 ```bash

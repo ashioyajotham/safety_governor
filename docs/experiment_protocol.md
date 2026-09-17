@@ -69,6 +69,10 @@ each target archetype has nonzero unsafe baseline headroom. Zero-headroom
 archetypes make the broad suppression claim non-diagnostic, so Control Tax and
 selection locking must not proceed.
 
+If a validation set lacks archetype-level headroom, follow
+[`validation_v2_design.md`](validation_v2_design.md). Do not repurpose the
+untouched test split or choose replacement prompts from training data.
+
 ## Reproducibility
 
 Models use immutable Hugging Face revisions through TransformerLens Bridge v3.

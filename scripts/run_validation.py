@@ -7,6 +7,7 @@ predeclared shortlisted directions and writes resumable per-response shards.
 from __future__ import annotations
 
 import argparse
+import copy
 import json
 import os
 from pathlib import Path
@@ -75,12 +76,25 @@ def _load_parent(parent: Path, config: dict) -> tuple[dict, dict]:
     return spec, manifest
 
 
+def _validation_dataset_path(config: dict, validation_config: dict) -> Path:
+    """Resolve an optional source-backed validation extension corpus."""
+
+    configured = validation_config.get("dataset", {}).get("path")
+    return Path(configured or config["dataset"]["path"])
+
+
 def _prepare(args):
     config = load(args.config)
+    validation_config = load_runtime_profile(args.validation_config)
     profile = load_runtime_profile(args.runtime_profile)
-    records = load_jsonl(config["dataset"]["path"])
+    validation_path = _validation_dataset_path(config, validation_config)
+    records = load_jsonl(validation_path)
     errors = validate_records(records)
-    errors.extend(stage1_errors(config, records, split="validation", allow_test_capture=False))
+    validation_runtime_config = copy.deepcopy(config)
+    validation_runtime_config["dataset"]["path"] = str(validation_path)
+    errors.extend(stage1_errors(
+        validation_runtime_config, records, split="validation", allow_test_capture=False
+    ))
     artifact_root = Path(args.artifact_root or profile["artifact_root"]).resolve()
     errors.extend(runtime_profile_errors(profile, artifact_root))
     facts = environment_facts(profile["device"])
@@ -88,20 +102,19 @@ def _prepare(args):
         errors.append("validation requires a clean Git checkout")
     if errors:
         raise SystemExit("Validation preflight failed:\n- " + "\n- ".join(errors))
-    return config, profile, records, artifact_root, facts
+    return config, validation_config, validation_path, profile, records, artifact_root, facts
 
 
 def capture(args) -> None:
     """Capture held-out references and score fixed train directions."""
 
-    config, profile, records, artifact_root, facts = _prepare(args)
-    validation_config = load_runtime_profile(args.validation_config)
+    config, validation_config, validation_path, profile, records, artifact_root, facts = _prepare(args)
     if validation_config["generation"].get("decoding") != "greedy":
         raise ValueError("validation generation must use deterministic greedy decoding")
     parent = Path(args.train_run).resolve()
     parent_spec, _ = _load_parent(parent, config)
     pair_ids, safe_rows, unsafe_rows = _paired(records, "validation")
-    raw = _raw_rows(config["dataset"]["path"], "validation")
+    raw = _raw_rows(validation_path, "validation")
     archetypes = [raw[pair_id]["archetype"] for pair_id in pair_ids]
     group_ids = [row.source_group_id for row in safe_rows]
     candidates = [
@@ -123,7 +136,10 @@ def capture(args) -> None:
         "parent_train_run": str(parent),
         "parent_train_manifest_sha256": file_sha256(parent / "manifest.json"),
         "parent_train_spec_sha256": canonical_sha256(parent_spec),
-        "dataset_sha256": dataset_sha256(config["dataset"]["path"]),
+        "dataset_sha256": dataset_sha256(validation_path),
+        "parent_train_dataset_sha256": dataset_sha256(config["dataset"]["path"]),
+        "validation_dataset_path": str(validation_path),
+        "validation_dataset_sha256": dataset_sha256(validation_path),
         "model": config["model"],
         "capture_site": config["extraction"]["capture_site"],
         "split": "validation",
@@ -251,8 +267,7 @@ def capture(args) -> None:
 def generate(args) -> None:
     """Generate deterministic baseline and shortlisted intervention responses."""
 
-    config, profile, records, artifact_root, facts = _prepare(args)
-    validation_config = load_runtime_profile(args.validation_config)
+    config, validation_config, validation_path, profile, records, artifact_root, facts = _prepare(args)
     run_root = artifact_root / args.run_id
     spec = json.loads((run_root / "validation_spec.json").read_text(encoding="utf-8"))
     if file_sha256(args.validation_config) != spec["validation_config_sha256"]:
@@ -264,7 +279,9 @@ def generate(args) -> None:
     if not shortlist:
         raise ValueError("no direction passed representation validation")
     pair_ids, safe_rows, _ = _paired(records, "validation")
-    raw = _raw_rows(config["dataset"]["path"], "validation")
+    if dataset_sha256(validation_path) != spec["validation_dataset_sha256"]:
+        raise ValueError("validation dataset changed after representation capture")
+    raw = _raw_rows(validation_path, "validation")
     configurations = [{"baseline": True}]
     generation_contract = validation_config["generation"]
     for candidate in shortlist:
