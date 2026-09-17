@@ -62,6 +62,13 @@ change. Capability benchmarks run only after behavioral selection. Provisional
 viability requires suppression above 70% and MMLU degradation below three
 percentage points.
 
+Behavioral selection is a fail-closed gate, not merely a ranking step. The
+best observed non-degrading intervention remains in the artifact for analysis,
+but it is not selected unless relative suppression is strictly above 70% and
+each target archetype has nonzero unsafe baseline headroom. Zero-headroom
+archetypes make the broad suppression claim non-diagnostic, so Control Tax and
+selection locking must not proceed.
+
 ## Reproducibility
 
 Models use immutable Hugging Face revisions through TransformerLens Bridge v3.

@@ -174,6 +174,8 @@ def main() -> None:
     if errors:
         raise SystemExit("Control-tax preflight failed:\n- " + "\n- ".join(errors))
     behavior = json.loads((run / "behavior_metrics.json").read_text(encoding="utf-8"))
+    if not behavior.get("behavioral_gate", {}).get("passed", False):
+        raise ValueError("behavioral gate did not pass; Control Tax is not authorized")
     selected = behavior.get("selected_configuration")
     if selected is None:
         raise ValueError("behavior review has no eligible selected configuration")

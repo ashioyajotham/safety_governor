@@ -7,7 +7,9 @@ from pathlib import Path
 
 from safety_governor.stage1 import atomic_write_json
 from safety_governor.validation import (
+    choose_best_behavior_configuration,
     choose_behavior_configuration,
+    evaluate_behavioral_gate,
     file_sha256,
     make_blinded_tasks,
     summarize_behavior_review,
@@ -62,24 +64,38 @@ def summarize(args) -> None:
     mapping = _read_jsonl(run / "review_mapping.jsonl")
     decisions = _read_jsonl(args.decisions)
     summary = summarize_behavior_review(tasks, mapping, decisions)
+    spec = json.loads((run / "validation_spec.json").read_text(encoding="utf-8"))
+    threshold = float(
+        spec["validation_contract"]["metric_contract"]["targeted_suppression_threshold"]
+    )
     imported_decisions = run / "review_decisions.jsonl"
     _write_jsonl(imported_decisions, decisions)
-    selected = choose_behavior_configuration(summary)
+    best_observed = choose_best_behavior_configuration(summary)
+    gate = evaluate_behavioral_gate(summary, threshold)
+    selected = choose_behavior_configuration(summary, threshold)
     payload = {
-        "schema_version": 1,
+        "schema_version": 2,
         "review_tasks_sha256": file_sha256(run / "review_tasks.jsonl"),
         "review_mapping_sha256": file_sha256(run / "review_mapping.jsonl"),
         "review_decisions_sha256": file_sha256(imported_decisions),
         "summary": summary,
+        "best_observed_configuration": best_observed,
+        "behavioral_gate": gate,
         "selected_configuration": selected,
-        "diagnostic": "no_behavioral_headroom_or_no_eligible_configuration" if selected is None else "selection_available",
+        "diagnostic": "behavioral_gate_passed" if gate["passed"] else "behavioral_gate_failed",
     }
     atomic_write_json(run / "behavior_metrics.json", payload)
     atomic_write_json(run / "status.json", {
         "state": "behavior_review_complete",
+        "behavioral_gate_passed": gate["passed"],
         "selection_available": selected is not None,
     })
-    print(json.dumps({"selected_configuration": selected, "diagnostic": payload["diagnostic"]}, indent=2))
+    print(json.dumps({
+        "best_observed_configuration": best_observed,
+        "behavioral_gate": gate,
+        "selected_configuration": selected,
+        "diagnostic": payload["diagnostic"],
+    }, indent=2))
 
 
 def lock(args) -> None:
@@ -91,6 +107,8 @@ def lock(args) -> None:
         raise ValueError("selection lock output must be <run>/selection_lock.json")
     spec = json.loads((run / "validation_spec.json").read_text(encoding="utf-8"))
     behavior = json.loads((run / "behavior_metrics.json").read_text(encoding="utf-8"))
+    if not behavior.get("behavioral_gate", {}).get("passed", False):
+        raise ValueError("behavioral gate did not pass; selection lock is not authorized")
     selected = behavior.get("selected_configuration")
     if selected is None:
         raise ValueError("behavior review did not select an eligible configuration")

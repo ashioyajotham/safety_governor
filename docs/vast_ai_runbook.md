@@ -173,9 +173,12 @@ decision template, copy it off-host, and stop the GPU while reviewing it:
   --output /data/safety_governor/exports/validation_review_decisions.jsonl
 ```
 
-After review, summarize the decisions and run Control Tax. MMLU and WikiText
-dataset revisions are pinned in `configs/validation.yaml`. Do not capture test
-until `selection_lock.json` exists and passes `scripts.validation_review verify`.
+After review, summarize the decisions and inspect `behavioral_gate` in
+`behavior_metrics.json`. Run Control Tax only when `passed` is true and
+`selected_configuration` is non-null. A `best_observed_configuration` is
+descriptive and does not authorize the next stage. MMLU and WikiText dataset
+revisions are pinned in `configs/validation.yaml`. Do not capture test until
+`selection_lock.json` exists and passes `scripts.validation_review verify`.
 
 ## 8. Export and shutdown
 
