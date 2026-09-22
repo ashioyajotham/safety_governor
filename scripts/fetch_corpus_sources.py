@@ -10,11 +10,26 @@ from pathlib import Path
 from urllib.request import urlretrieve
 
 SOURCES = {
+    "gsm8k_train.jsonl": {
+        "commit": "3101c7d5072418e28b9008a6636bde82a006892c",
+        "path": "grade_school_math/data/train.jsonl",
+        "sha256": "17f347dc51477c50d4efb83959dbb7c56297aba886e5544ee2aaed3024813465",
+        "repository": "openai/grade-school-math",
+        "license": "MIT",
+    },
+    "bigbench_formal_fallacies.json": {
+        "commit": "092b196c1f8f14a54bbc62f24759d43bde46dd3b",
+        "path": "bigbench/benchmark_tasks/formal_fallacies_syllogisms_negation/task.json",
+        "sha256": "8b1a903c4d860d07cd134df8c44d579b255653d54a83f8f3794e27313e35fa40",
+        "repository": "google/BIG-bench",
+        "license": "Apache-2.0",
+    },
     "truthfulqa.csv": {
         "commit": "d71c110897f5d31c5d7f309e7bc316c152f6f031",
         "path": "TruthfulQA.csv",
         "sha256": "b8d8ef1e12f98b4f2a9f47abc9765da0640b182b6c5d9b92f0c1a1f2f1e02e5c",
         "repository": "sylinrl/TruthfulQA",
+        "license": "Apache-2.0",
     },
     "sycophancy_answer.jsonl": {
         "commit": "9a1694221e3639887138f61deae344335eca6752",

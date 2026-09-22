@@ -91,7 +91,7 @@ def test_validation_extension_audit_enforces_role_and_source_isolation(tmp_path)
                     "completion": f"{pair_id} {polarity}",
                     "source_group_id": f"group-{pair_id}",
                     "validation_role": role, "source_record_id": pair_id,
-                    "source_revision": "immutable-revision",
+                    "source_revision": "immutable-revision", "source_license": "Apache-2.0",
                 })
     extension.write_text("\n".join(json.dumps(row) for row in rows) + "\n")
     report = audit_extension(extension, base, minimum_pairs_per_archetype_role=1)

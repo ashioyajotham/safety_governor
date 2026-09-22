@@ -488,13 +488,24 @@ def verify_selection_lock(path: str | Path) -> dict:
 def audit_validation_run(directory: str | Path) -> dict:
     """Fail closed unless a locked held-out validation run is self-consistent."""
 
+    # Local import avoids a module cycle: Validation-v2 reuses the generic
+    # blinded-review and file-hashing primitives defined in this module.
+    from .validation_v2 import verify_lock
+
     root = Path(directory)
     required = {
         "validation_spec.json", "run_spec.json", "status.json", "manifest.json",
-        "representation_metrics.json", "generations.jsonl", "review_tasks.jsonl",
+        "generations.jsonl", "review_tasks.jsonl",
         "review_mapping.jsonl", "review_decisions.jsonl", "behavior_metrics.json",
         "control_tax.json", "selection_lock.json",
     }
+    spec_path = root / "validation_spec.json"
+    if spec_path.is_file():
+        provisional_spec = json.loads(spec_path.read_text(encoding="utf-8"))
+        if int(provisional_spec.get("schema_version", 1)) >= 2:
+            required.update({"fixed_direction.json", "calibration_lock.json"})
+        else:
+            required.add("representation_metrics.json")
     missing = [name for name in sorted(required) if not (root / name).is_file()]
     if missing:
         raise ValueError(f"validation run is missing required artifacts: {missing}")
@@ -517,27 +528,63 @@ def audit_validation_run(directory: str | Path) -> dict:
     if lock["model_revision"] != spec.get("model", {}).get("revision"):
         errors.append("selection lock model revision mismatch")
     hash_fields = {
-        "representation_metrics_sha256": "representation_metrics.json",
         "generations_sha256": "generations.jsonl",
         "behavior_metrics_sha256": "behavior_metrics.json",
         "control_tax_sha256": "control_tax.json",
     }
+    if int(spec.get("schema_version", 1)) >= 2:
+        hash_fields["fixed_direction_sha256"] = "fixed_direction.json"
+        try:
+            calibration_lock = verify_lock(
+                root / "calibration_lock.json",
+                lock_type="validation_v2_calibration",
+            )
+        except ValueError as exc:
+            errors.append(str(exc))
+            calibration_lock = {}
+        if manifest.get("calibration_lock_sha256") != spec.get("calibration_lock_sha256"):
+            errors.append("manifest calibration-lock hash mismatch")
+        if lock.get("calibration_lock_sha256") != spec.get("calibration_lock_sha256"):
+            errors.append("selection lock calibration-lock hash mismatch")
+        copied_lock_sha256 = file_sha256(root / "calibration_lock.json")
+        if copied_lock_sha256 != spec.get("calibration_lock_file_sha256"):
+            errors.append("specification calibration-lock file hash mismatch")
+        if manifest.get("calibration_lock_file_sha256") != copied_lock_sha256:
+            errors.append("manifest calibration-lock file hash mismatch")
+        if lock.get("calibration_lock_file_sha256") != copied_lock_sha256:
+            errors.append("selection lock calibration-lock file hash mismatch")
+        if calibration_lock.get("lock_sha256") != spec.get("calibration_lock_sha256"):
+            errors.append("copied calibration-lock content hash mismatch")
+        fixed = spec.get("fixed_direction", {})
+        if calibration_lock.get("fixed_direction_sha256") != fixed.get("vector_sha256"):
+            errors.append("calibration lock selects a different fixed direction")
+        if lock.get("fixed_direction_sha256") != file_sha256(
+            root / "fixed_direction.json"
+        ):
+            errors.append("selection lock fixed-direction artifact hash mismatch")
+    else:
+        hash_fields["representation_metrics_sha256"] = "representation_metrics.json"
     for field, filename in hash_fields.items():
         if manifest.get(field) != file_sha256(root / filename):
             errors.append(f"manifest hash mismatch: {filename}")
     def read_jsonl(name: str) -> list[dict]:
         return [json.loads(line) for line in (root / name).read_text(encoding="utf-8").splitlines() if line.strip()]
     generations = read_jsonl("generations.jsonl")
-    representation = json.loads(
-        (root / "representation_metrics.json").read_text(encoding="utf-8")
-    )
-    contract = spec.get("validation_contract", {}).get("generation", {})
-    expected_generations = len(spec.get("pair_ids", [])) * (
-        1
-        + len(representation.get("shortlist", []))
-        * len(contract.get("magnitudes", []))
-        * len(contract.get("token_modes", []))
-    )
+    if int(spec.get("schema_version", 1)) >= 2:
+        expected_generations = len(spec.get("pair_ids", [])) * len(
+            spec.get("configurations", [])
+        )
+    else:
+        representation = json.loads(
+            (root / "representation_metrics.json").read_text(encoding="utf-8")
+        )
+        contract = spec.get("validation_contract", {}).get("generation", {})
+        expected_generations = len(spec.get("pair_ids", [])) * (
+            1
+            + len(representation.get("shortlist", []))
+            * len(contract.get("magnitudes", []))
+            * len(contract.get("token_modes", []))
+        )
     tasks, mapping, decisions = (
         read_jsonl("review_tasks.jsonl"), read_jsonl("review_mapping.jsonl"),
         read_jsonl("review_decisions.jsonl"),

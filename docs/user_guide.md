@@ -260,6 +260,42 @@ The source-isolated redesign procedure is documented in
 [`validation_v2_design.md`](validation_v2_design.md). Its extension audit must
 pass before calibration or confirmatory generation.
 
+Validation-v2 execution is deliberately phase locked:
+
+```bash
+cp configs/validation_v2.template.yaml configs/validation_v2.yaml
+# Fill only fixed_direction.parent_train_manifest_sha256, then commit the contract.
+
+python -m scripts.run_validation_v2 generate-calibration configs/llama3_8b.yaml \
+  --validation-config configs/validation_v2.yaml \
+  --runtime-profile configs/runtime/vast_bf16.yaml \
+  --train-run /data/safety_governor/artifacts/llama3-stage1-response-mean-hf-native \
+  --run-id llama3-validation-v2-calibration --resume
+
+python -m scripts.validation_review export \
+  --run /data/safety_governor/artifacts/llama3-validation-v2-calibration \
+  --output validation_v2_calibration_decisions.jsonl
+python -m scripts.validation_review summarize-calibration \
+  --run /data/safety_governor/artifacts/llama3-validation-v2-calibration \
+  --decisions PATH/TO/completed_calibration_decisions.jsonl
+```
+
+Only when that command writes `calibration_lock.json` may confirmatory
+generation run:
+
+```bash
+python -m scripts.run_validation_v2 generate-confirmatory configs/llama3_8b.yaml \
+  --validation-config configs/validation_v2.yaml \
+  --runtime-profile configs/runtime/vast_bf16.yaml \
+  --train-run /data/safety_governor/artifacts/llama3-stage1-response-mean-hf-native \
+  --calibration-lock /data/safety_governor/artifacts/llama3-validation-v2-calibration/calibration_lock.json \
+  --run-id llama3-validation-v2-confirmatory --resume
+```
+
+Export and review confirmatory tasks exactly as above, then use
+`summarize-confirmatory`. It emits the standard `behavior_metrics.json`, so a
+passing run can use the existing Control Tax and selection-lock commands.
+
 Run fixed-vector validation from the repository root:
 
 ```bash

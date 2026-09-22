@@ -46,7 +46,9 @@ def audit_extension(
     for row in rows:
         pair_rows[row.get("pair_id", "")].append(row)
         missing = [
-            field for field in ("validation_role", "source_record_id", "source_revision")
+            field for field in (
+                "validation_role", "source_record_id", "source_revision", "source_license"
+            )
             if not str(row.get(field, "")).strip()
         ]
         if missing:
@@ -58,6 +60,8 @@ def audit_extension(
         if row.get("split") != "validation":
             errors.append(f"{row.get('pair_id')}: extension rows must use split=validation")
     roles_by_group: dict[str, set[str]] = defaultdict(set)
+    archetypes_by_group: dict[str, set[str]] = defaultdict(set)
+    pairs_by_source_record: dict[tuple[str, str], set[str]] = defaultdict(set)
     counts: Counter[tuple[str, str]] = Counter()
     groups: dict[tuple[str, str], set[str]] = defaultdict(set)
     for pair_id, group in pair_rows.items():
@@ -73,12 +77,20 @@ def audit_extension(
         if source_group in base_groups:
             errors.append(f"{pair_id}: source group overlaps the frozen corpus")
         roles_by_group[source_group].add(role)
+        archetypes_by_group[source_group].add(archetype)
+        source_identity = (str(group[0].get("source_revision")), str(group[0].get("source_record_id")))
+        pairs_by_source_record[source_identity].add(pair_id)
         if role in ROLES and archetype in ARCHETYPES:
             counts[(role, archetype)] += 1
             groups[(role, archetype)].add(source_group)
     for source_group, roles in roles_by_group.items():
         if len(roles) != 1:
             errors.append(f"{source_group}: source group crosses validation roles")
+        if len(archetypes_by_group[source_group]) != 1:
+            errors.append(f"{source_group}: source group crosses archetypes")
+    for source_identity, pair_ids in pairs_by_source_record.items():
+        if len(pair_ids) != 1:
+            errors.append(f"{source_identity}: source record reused by multiple pairs")
     for role in sorted(ROLES):
         for archetype in sorted(ARCHETYPES):
             count = counts[(role, archetype)]

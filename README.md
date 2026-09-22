@@ -171,3 +171,10 @@ nonzero unsafe baseline headroom.
 When those conditions are not measurable, use the source-isolated
 [validation-v2 redesign](docs/validation_v2_design.md); never substitute the
 untouched test split.
+
+Validation v2 uses 48 calibration and 64 confirmatory pairs from pinned,
+explicitly licensed public sources. It keeps the train-derived DIM layer-12
+direction fixed, locks one magnitude/policy after blinded calibration, and
+evaluates only baseline versus that lock on confirmatory data. Human curation
+can be checkpointed with
+[`validation_v2_curation_workbench.ipynb`](docs/notebooks/stage1/validation_v2_curation_workbench.ipynb).
