@@ -3,6 +3,7 @@ import json
 
 import pytest
 
+from scripts.audit_annotation_artifacts import audit as audit_annotation_artifacts
 from safety_governor.validation_v2 import (
     ARCHETYPES,
     build_candidates,
@@ -83,6 +84,10 @@ def test_review_and_materialization_select_exact_frozen_quotas(tmp_path):
     assert sum(row["validation_role"] == "calibration" for row in records) == 96
     assert sum(row["validation_role"] == "confirmatory" for row in records) == 128
     assert all("reviewer" not in row and "rationale" not in row for row in records)
+    assert audit_annotation_artifacts(
+        records,
+        strict_archetypes={"false_premise_agreement", "motivated_reasoning"},
+    ) == []
 
 
 def test_review_rejects_incomplete_or_weak_decisions():

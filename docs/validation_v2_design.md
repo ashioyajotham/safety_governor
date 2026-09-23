@@ -56,6 +56,12 @@ them before either is used. Copy `configs/validation_v2.template.yaml` to
 `configs/validation_v2.yaml`, fill only the audited parent-manifest hash, and
 commit the contract before GPU execution.
 
+Corpus-level lexical checks run after individual review. If they identify a
+shared template confound, revised deterministic drafts do not inherit prior
+approvals. `scripts.prepare_validation_v2_remediation` carries forward only
+decisions whose instruction and both completions are byte-identical, while the
+curation workbench reopens every changed row for explicit human review.
+
 Validation v2 keeps DIM layer 12 fixed. Calibration generates baseline plus the
 six predeclared magnitude/policy combinations. A passing calibration writes a
 content-addressed lock for exactly one intervention. Confirmatory generation
