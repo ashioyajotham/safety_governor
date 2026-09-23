@@ -1,0 +1,70 @@
+{
+  "artifacts": {
+    "base_sha256": "c93c8d1f9c16ca7487d77c17f213b0b3a9771fd9ae7ee77d9c622ab288cd0852",
+    "calibration": {
+      "path": "datasets/validation_v2/calibration.jsonl",
+      "sha256": "007766ba9853b333433d194af67eb335f800d49d5c5097b0deeeef502d5f50a7"
+    },
+    "candidates_sha256": "4e3d0a424173b03700ed7aa2653a6a3fea03308ffeba8a825ddca0f9a892ace9",
+    "confirmatory": {
+      "path": "datasets/validation_v2/confirmatory.jsonl",
+      "sha256": "3d3e7773fda4b5dd788dee7998265583387d7674f25ee7527f3738dd8881a93a"
+    },
+    "decisions_sha256": "0a7749b8ac7b76c9325eb01071f6a205081b5f449cf5dbce15bb1917cca7273e",
+    "reviewed_extension": {
+      "path": "datasets/validation_v2/reviewed_extension.jsonl",
+      "sha256": "89988cec2ca1fec388f29c2978a1ca8a90dcdba15f4415c30c474be2bbe9e98a"
+    }
+  },
+  "audit": {
+    "counts": {
+      "calibration": {
+        "arithmetic_reasoning_error": 12,
+        "factual_confabulation": 12,
+        "false_premise_agreement": 12,
+        "motivated_reasoning": 12
+      },
+      "confirmatory": {
+        "arithmetic_reasoning_error": 16,
+        "factual_confabulation": 16,
+        "false_premise_agreement": 16,
+        "motivated_reasoning": 16
+      }
+    },
+    "minimum_pairs_per_archetype_role": 12,
+    "pairs": 112,
+    "rows": 224,
+    "source_groups": {
+      "calibration": {
+        "arithmetic_reasoning_error": 12,
+        "factual_confabulation": 12,
+        "false_premise_agreement": 12,
+        "motivated_reasoning": 12
+      },
+      "confirmatory": {
+        "arithmetic_reasoning_error": 16,
+        "factual_confabulation": 16,
+        "false_premise_agreement": 16,
+        "motivated_reasoning": 16
+      }
+    },
+    "valid": true
+  },
+  "counts": {
+    "calibration": {
+      "arithmetic_reasoning_error": 12,
+      "factual_confabulation": 12,
+      "false_premise_agreement": 12,
+      "motivated_reasoning": 12
+    },
+    "confirmatory": {
+      "arithmetic_reasoning_error": 16,
+      "factual_confabulation": 16,
+      "false_premise_agreement": 16,
+      "motivated_reasoning": 16
+    }
+  },
+  "pairs": 112,
+  "rows": 224,
+  "schema_version": 1
+}

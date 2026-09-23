@@ -178,3 +178,6 @@ direction fixed, locks one magnitude/policy after blinded calibration, and
 evaluates only baseline versus that lock on confirmatory data. Human curation
 can be checkpointed with
 [`validation_v2_curation_workbench.ipynb`](docs/notebooks/stage1/validation_v2_curation_workbench.ipynb).
+The reviewed 112-pair extension and concrete phase contract are now frozen in
+`datasets/validation_v2/` and `configs/validation_v2.yaml`; calibration GPU
+generation is the next unexecuted phase.

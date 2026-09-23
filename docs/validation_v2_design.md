@@ -1,5 +1,17 @@
 # Validation v2 redesign
 
+## Frozen extension status
+
+The source-backed extension was frozen after completed human review and
+corpus-level remediation on 23 September 2026. It contains 112 source-group-
+isolated pairs: 48 calibration pairs and 64 confirmatory pairs, balanced across
+the four archetypes. The reviewed extension SHA-256 is
+`89988cec2ca1fec388f29c2978a1ca8a90dcdba15f4415c30c474be2bbe9e98a`;
+the calibration and confirmatory hashes are recorded in
+`datasets/validation_v2/manifest.json`. `configs/validation_v2.yaml` binds the
+study to the audited parent manifest and DIM layer-12 vector. No Validation-v2
+model generations have been run yet.
+
 ## Status and reason for redesign
 
 Validation v1 is a completed negative result, not a broken run. The blinded
