@@ -180,6 +180,13 @@ descriptive and does not authorize the next stage. MMLU and WikiText dataset
 revisions are pinned in `configs/validation.yaml`. Do not capture test until
 `selection_lock.json` exists and passes `scripts.validation_review verify`.
 
+The frozen Validation-v2 calibration run did not pass: its best observed
+condition achieved 7.69% relative suppression and failed strict improvement in
+every archetype. It produced neither a selected configuration nor a calibration
+lock. Do not restart GPU work for confirmatory generation, Control Tax, or test
+evaluation from this run. Preserve the artifacts, stop the instance, and use
+`scripts.analyze_validation_v2` for offline diagnostics.
+
 ## 8. Export and shutdown
 
 ```bash

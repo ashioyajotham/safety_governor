@@ -25,9 +25,13 @@ Stage-1 Llama plumbing now targets the frozen deceptive-reasoning release at `da
 The first substantive Llama-3 train sweep is complete and independently
 checksummed: 88 pairs, 61 source groups, layers `0,4,8,12,16,20,24,28`, and
 finite aligned `(88,4096)` response-mean activations. This establishes train
-direction stability only. The current gate is fixed-direction validation on 16
-held-out pairs, followed by blinded intervention review and capability-tax
-measurement. The primary execution path is documented in the
+direction stability only. Both fixed-direction Validation v1 and the
+source-isolated Validation-v2 calibration are completed negative results.
+Validation v2 had adequate baseline headroom in every archetype, but its best
+observed intervention achieved only 7.69% relative suppression against the
+predeclared threshold of strictly greater than 70%. No configuration or lock
+was selected; confirmatory validation, Control Tax, and test evaluation remain
+blocked. The primary execution path is documented in the
 [Vast.ai runbook](docs/vast_ai_runbook.md). The
 [Colab notebook](docs/notebooks/stage1/llama_stage1_colab.ipynb) is retained as
 a secondary interface over that same runner.
@@ -178,6 +182,9 @@ direction fixed, locks one magnitude/policy after blinded calibration, and
 evaluates only baseline versus that lock on confirmatory data. Human curation
 can be checkpointed with
 [`validation_v2_curation_workbench.ipynb`](docs/notebooks/stage1/validation_v2_curation_workbench.ipynb).
-The reviewed 112-pair extension and concrete phase contract are now frozen in
-`datasets/validation_v2/` and `configs/validation_v2.yaml`; calibration GPU
-generation is the next unexecuted phase.
+The reviewed 112-pair extension and concrete phase contract are frozen in
+`datasets/validation_v2/` and `configs/validation_v2.yaml`. The 48-pair,
+336-response calibration run and blinded review failed closed. The exact
+provenance, comparable condition table, diagnostic summary, and figure are in
+[`results/validation_v2/`](results/validation_v2/). The 64-pair confirmatory
+corpus remains untouched.

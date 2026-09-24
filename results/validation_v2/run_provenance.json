@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "run_id": "llama3-validation-v2-calibration",
+  "phase": "validation_v2_calibration",
+  "state": "validation_v2_calibration_review_complete",
+  "result": "negative_fail_closed",
+  "repository_commit": "9c63eb5ebec7bef0dbe8badb429c24ffacf16066",
+  "model": {
+    "name": "meta-llama/Meta-Llama-3-8B-Instruct",
+    "revision": "8afb486c1db24fe5011ec46dfbe5b5dccdb575c2"
+  },
+  "fixed_direction": {
+    "method": "difference_in_means",
+    "layer": 12,
+    "vector_sha256": "0908fbb4962cb98229d78c087f5e2deac1100ec0b3c907a40797809d48a87181",
+    "parent_train_manifest_sha256": "347ec3d8be61f57c81fedf9891504f4693629c75e6c0d4cba19cc68379cd7219"
+  },
+  "calibration_dataset_sha256": "007766ba9853b333433d194af67eb335f800d49d5c5097b0deeeef502d5f50a7",
+  "validation_config_sha256": "e57a0ebcf75108f5b1d115bea8dbae354162823f9d9d700bc82d50e27cf66b2a",
+  "counts": {
+    "pairs": 48,
+    "configurations": 7,
+    "generated_responses": 336,
+    "reviewed_responses": 336
+  },
+  "artifact_sha256": {
+    "calibration_metrics": "b30ede735a180afda3860a279c02f784eeffd420c6139222865f25f86edd0562",
+    "status": "0b44004f777dde07d0e8bcf1dfdddc968306bf53698a2784f7911632f446139d",
+    "review_tasks": "7ebb84107965a55c345e7bdcab7a540dc61c0f9462d834f28a33c9fcd6ed2d44",
+    "review_mapping": "55f14d623d2cec5dc1f9a9b5aa854fbe02e82ddc01d4d9da26981eb49da1ba24",
+    "review_decisions": "adaf03a5ee5dcec2268153b5d5295efc510897dd349578a54a9d9c3ae04e1f00"
+  },
+  "authorization": {
+    "selected_configuration": null,
+    "calibration_lock": null,
+    "confirmatory_generation": false,
+    "control_tax": false,
+    "test_evaluation": false
+  }
+}

@@ -102,6 +102,16 @@ zero for the absolute unsafe-rate change. Control Tax remains blocked unless
 all confirmatory conditions pass. Test data remains untouched until the
 Control-Tax-backed selection lock is independently verified.
 
+#### Validation-v2 observed outcome
+
+The completed blinded calibration failed the predeclared gate. Baseline unsafe
+headroom was sufficient in all four archetypes, but the best observed condition
+reduced unsafe responses from 39/48 to 36/48, or 7.69% relative suppression.
+The bootstrap interval crossed zero and not every archetype strictly improved.
+Accordingly, `selected_configuration`, `calibration_lock`, and every downstream
+authorization remain null. This is a completed negative result, not permission
+to retune thresholds or inspect confirmatory/test data.
+
 ## Reproducibility
 
 Models use immutable Hugging Face revisions through TransformerLens Bridge v3.

@@ -280,6 +280,21 @@ python -m scripts.validation_review summarize-calibration \
   --decisions PATH/TO/completed_calibration_decisions.jsonl
 ```
 
+The recorded Validation-v2 calibration run failed this gate: baseline was
+unsafe on 39/48 responses, while the best observed condition was unsafe on
+36/48, for 7.69% relative suppression. No `calibration_lock.json` exists.
+Reproduce the tracked diagnostic report, table, and SVG from the retained
+`calibration_metrics.json` with:
+
+```bash
+python -m scripts.analyze_validation_v2 PATH/TO/calibration_metrics.json \
+  --output results/validation_v2
+```
+
+The generated `diagnostic_summary.json` must retain
+`selected_configuration: null`. Do not continue to the command below for the
+recorded run.
+
 Only when that command writes `calibration_lock.json` may confirmatory
 generation run:
 

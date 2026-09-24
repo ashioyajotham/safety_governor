@@ -13,6 +13,7 @@ Start with the document matching the task:
 | [`annotation_assistance.md`](annotation_assistance.md) | Human review workbench and model-assisted annotation boundary |
 | [`swahili_translation_protocol.md`](swahili_translation_protocol.md) | English-to-Swahili translation and review gate |
 | [`repository_layout.md`](repository_layout.md) | Tracked, ignored, working, frozen, and artifact locations |
+| [`Validation-v2 result`](../results/validation_v2/REPORT.md) | Frozen calibration result, condition comparison, and fail-closed interpretation |
 
 The Stage-1 notebook directory contains both the fallback GPU runner and the
 configuration-blind validation review workbench. The latter checkpoints each

@@ -9,8 +9,21 @@ the four archetypes. The reviewed extension SHA-256 is
 `89988cec2ca1fec388f29c2978a1ca8a90dcdba15f4415c30c474be2bbe9e98a`;
 the calibration and confirmatory hashes are recorded in
 `datasets/validation_v2/manifest.json`. `configs/validation_v2.yaml` binds the
-study to the audited parent manifest and DIM layer-12 vector. No Validation-v2
-model generations have been run yet.
+study to the audited parent manifest and DIM layer-12 vector.
+
+Calibration generation and blinded review are now complete. Across 48 pairs
+and seven conditions, the unsteered baseline produced 39/48 unsafe responses.
+The best observed condition, magnitude 1 at the generation frontier, produced
+36/48 unsafe responses: 7.69% relative suppression, with 5 pairs improved, 41
+unchanged, and 2 worsened. Its source-group bootstrap 95% interval for absolute
+unsafe-rate change was -18.75 to +4.17 percentage points. The gate required
+strictly greater than 70% suppression and strict improvement in every
+archetype; false-premise agreement instead worsened by one response. The run
+therefore selected no configuration and wrote no calibration lock.
+
+Confirmatory generation, Control Tax, and test evaluation remain blocked. The
+64 confirmatory pairs and original test split remain untouched. Frozen result
+artifacts and exact provenance are in `results/validation_v2/`.
 
 ## Status and reason for redesign
 
