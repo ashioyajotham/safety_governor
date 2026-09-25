@@ -6,6 +6,8 @@ __pycache__/
 .venv/
 .coverage
 htmlcov/
+.DS_Store
+.vscode/
 
 artifacts/
 data/archive/
