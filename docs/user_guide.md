@@ -295,6 +295,17 @@ The generated `diagnostic_summary.json` must retain
 `selected_configuration: null`. Do not continue to the command below for the
 recorded run.
 
+The next authorized experiment is the Validation-v3 mechanism-development
+funnel, not a retry of Validation v2. It uses balanced late-layer Ridge and
+budgeted multi-layer governors, keeps the v2 confirmatory corpus hash-sealed,
+and permits adaptive steering only after train-only qualification. Follow the
+complete, ordered commands in
+[`validation_v3_development.md`](validation_v3_development.md). The short form
+is: fit directions, run the teacher-forced screen, optionally qualify gates,
+freeze at most three development interventions, generate and blindly review on
+the spent calibration set, then use the sealed confirmatory set once only if a
+final intervention lock was created.
+
 Only when that command writes `calibration_lock.json` may confirmatory
 generation run:
 

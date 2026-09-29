@@ -32,8 +32,206 @@ to point from safe to unsafe behavior.
 """
 from __future__ import annotations
 
+from dataclasses import dataclass
+import hashlib
 from typing import Callable
 import numpy as np
+
+
+@dataclass(frozen=True)
+class RidgeDirection:
+    """Unit Ridge direction plus the affine score calibration it came from."""
+
+    vector: np.ndarray
+    threshold: float
+    score_scale: float
+    raw_norm: float
+    l2: float
+
+
+def archetype_balanced_weights(archetypes: list[str]) -> np.ndarray:
+    """Give every archetype equal mass and every row within it equal mass."""
+
+    labels = np.asarray(archetypes)
+    if labels.ndim != 1 or len(labels) == 0:
+        raise ValueError("archetypes must be a non-empty one-dimensional list")
+    unique = np.unique(labels)
+    weights = np.zeros(len(labels), dtype=float)
+    for label in unique:
+        mask = labels == label
+        weights[mask] = 1.0 / (len(unique) * int(mask.sum()))
+    return weights
+
+
+def balanced_difference_in_means(
+    safe: np.ndarray,
+    unsafe: np.ndarray,
+    archetypes: list[str],
+) -> np.ndarray:
+    """Fit DIM after assigning equal total mass to every archetype."""
+
+    if safe.shape != unsafe.shape or safe.ndim != 2 or len(safe) != len(archetypes):
+        raise ValueError("balanced DIM requires aligned rows and archetypes")
+    weights = archetype_balanced_weights(archetypes)
+    safe_mean = np.sum(safe * weights[:, None], axis=0)
+    unsafe_mean = np.sum(unsafe * weights[:, None], axis=0)
+    return normalize(unsafe_mean - safe_mean)
+
+
+def balanced_ridge_direction(
+    safe: np.ndarray,
+    unsafe: np.ndarray,
+    archetypes: list[str],
+    l2: float = 1.0,
+) -> RidgeDirection:
+    """Fit weighted Ridge with equal archetype and polarity contribution.
+
+    Inputs are expected to contain one row per source group. The returned
+    threshold is the class boundary in unit-vector projection units; it is
+    retained for diagnostics and must not be reused as a token gate without
+    token-site calibration.
+    """
+
+    if safe.shape != unsafe.shape or safe.ndim != 2 or len(safe) != len(archetypes):
+        raise ValueError("balanced Ridge requires aligned rows and archetypes")
+    if l2 <= 0:
+        raise ValueError("ridge regularization must be positive")
+    row_weights = archetype_balanced_weights(archetypes)
+    x = np.concatenate((safe, unsafe), axis=0)
+    y = np.concatenate((np.zeros(len(safe)), np.ones(len(unsafe))))
+    weights = np.concatenate((row_weights / 2.0, row_weights / 2.0))
+    x_mean = np.sum(x * weights[:, None], axis=0)
+    y_mean = float(np.sum(y * weights))
+    centered_x = x - x_mean
+    centered_y = y - y_mean
+    root = np.sqrt(weights)
+    weighted_x = centered_x * root[:, None]
+    weighted_y = centered_y * root
+    dual = np.linalg.solve(
+        weighted_x @ weighted_x.T + l2 * np.eye(len(weighted_x)),
+        weighted_y,
+    )
+    raw = weighted_x.T @ dual
+    raw_norm = float(np.linalg.norm(raw))
+    vector = normalize(raw)
+    intercept = y_mean - float(x_mean @ raw)
+    threshold = float((0.5 - intercept) / raw_norm)
+    projections = x @ vector
+    centered_projection = projections - float(np.sum(projections * weights))
+    score_scale = float(np.sqrt(np.sum(weights * centered_projection**2)))
+    if score_scale <= 0 or not np.isfinite(score_scale):
+        raise ValueError("ridge projection scale must be positive and finite")
+    return RidgeDirection(vector, threshold, score_scale, raw_norm, float(l2))
+
+
+def deterministic_group_folds(
+    group_ids: list[str],
+    archetypes: list[str],
+    folds: int = 3,
+    seed: int = 0,
+) -> np.ndarray:
+    """Assign source groups to deterministic archetype-stratified folds."""
+
+    if len(group_ids) != len(archetypes) or len(group_ids) == 0:
+        raise ValueError("group IDs and archetypes must be aligned and non-empty")
+    if len(set(group_ids)) != len(group_ids):
+        raise ValueError("fold assignment expects one row per source group")
+    if folds < 2:
+        raise ValueError("at least two folds are required")
+    assignments = np.empty(len(group_ids), dtype=int)
+    labels = np.asarray(archetypes)
+    for archetype in sorted(set(archetypes)):
+        indices = np.flatnonzero(labels == archetype).tolist()
+        if len(indices) < folds:
+            raise ValueError(f"archetype {archetype} has fewer groups than folds")
+        indices.sort(key=lambda index: hashlib.sha256(
+            f"{seed}:{group_ids[index]}".encode("utf-8")
+        ).hexdigest())
+        for offset, index in enumerate(indices):
+            assignments[index] = offset % folds
+    return assignments
+
+
+def binary_auc(labels: np.ndarray, scores: np.ndarray) -> float:
+    """Compute tie-aware binary AUC without a third-party dependency."""
+
+    labels = np.asarray(labels, dtype=int)
+    scores = np.asarray(scores, dtype=float)
+    positives = scores[labels == 1]
+    negatives = scores[labels == 0]
+    if not len(positives) or not len(negatives):
+        raise ValueError("AUC requires both classes")
+    comparisons = positives[:, None] - negatives[None, :]
+    return float(np.mean((comparisons > 0).astype(float) + 0.5 * (comparisons == 0)))
+
+
+def select_balanced_ridge_l2(
+    safe: np.ndarray,
+    unsafe: np.ndarray,
+    group_ids: list[str],
+    archetypes: list[str],
+    candidates: tuple[float, ...] = (0.1, 1.0, 10.0, 100.0),
+    folds: int = 3,
+    seed: int = 0,
+) -> tuple[RidgeDirection, dict]:
+    """Select Ridge regularization with grouped out-of-fold macro AUC."""
+
+    if safe.shape != unsafe.shape or len(safe) != len(group_ids):
+        raise ValueError("ridge selection requires aligned group-level activations")
+    assignments = deterministic_group_folds(group_ids, archetypes, folds, seed)
+    diagnostics = []
+    labels = np.concatenate((np.zeros(len(safe), dtype=int), np.ones(len(unsafe), dtype=int)))
+    archetype_array = np.asarray(archetypes)
+    for l2 in candidates:
+        if l2 <= 0:
+            raise ValueError("ridge candidates must be positive")
+        scores = np.empty(2 * len(safe), dtype=float)
+        margins = np.empty(len(safe), dtype=float)
+        for fold in range(folds):
+            train = assignments != fold
+            held = assignments == fold
+            fitted = balanced_ridge_direction(
+                safe[train], unsafe[train], archetype_array[train].tolist(), l2
+            )
+            safe_scores = safe[held] @ fitted.vector
+            unsafe_scores = unsafe[held] @ fitted.vector
+            held_indices = np.flatnonzero(held)
+            scores[held_indices] = safe_scores
+            scores[len(safe) + held_indices] = unsafe_scores
+            margins[held_indices] = unsafe_scores - safe_scores
+        per_archetype = {}
+        for archetype in sorted(set(archetypes)):
+            mask = archetype_array == archetype
+            indices = np.flatnonzero(mask)
+            local_labels = np.concatenate((np.zeros(len(indices), dtype=int), np.ones(len(indices), dtype=int)))
+            local_scores = np.concatenate((scores[indices], scores[len(safe) + indices]))
+            per_archetype[archetype] = {
+                "auc": binary_auc(local_labels, local_scores),
+                "mean_paired_margin": float(np.mean(margins[mask])),
+            }
+        macro_auc = float(np.mean([row["auc"] for row in per_archetype.values()]))
+        minimum_auc = float(min(row["auc"] for row in per_archetype.values()))
+        diagnostics.append({
+            "l2": float(l2),
+            "macro_auc": macro_auc,
+            "minimum_archetype_auc": minimum_auc,
+            "overall_auc": binary_auc(labels, scores),
+            "mean_paired_margin": float(np.mean(margins)),
+            "per_archetype": per_archetype,
+        })
+    selected = max(
+        diagnostics,
+        key=lambda row: (row["macro_auc"], row["minimum_archetype_auc"], -row["l2"]),
+    )
+    fitted = balanced_ridge_direction(safe, unsafe, archetypes, selected["l2"])
+    return fitted, {
+        "folds": folds,
+        "seed": seed,
+        "fold_assignments": assignments.tolist(),
+        "candidates": diagnostics,
+        "selected_l2": selected["l2"],
+        "selection_metric": "macro_archetype_auc_then_minimum_archetype_auc_then_lower_l2",
+    }
 
 
 def normalize(vector: np.ndarray) -> np.ndarray:
@@ -251,5 +449,3 @@ def bootstrap_cosine(
         indices = np.concatenate([np.flatnonzero(groups == group) for group in selected])
         scores.append(float(np.dot(reference, extractor(safe[indices], unsafe[indices]))))
     return np.asarray(scores)
-
-

@@ -112,6 +112,24 @@ Accordingly, `selected_configuration`, `calibration_lock`, and every downstream
 authorization remain null. This is a completed negative result, not permission
 to retune thresholds or inspect confirmatory/test data.
 
+### Validation v3: mechanism-development funnel
+
+Validation v3 does not reopen or repair Validation v2. It treats the train
+split and the already-spent v2 calibration set as development data, while the
+64-pair v2 confirmatory set remains hash-sealed until one v3 intervention is
+frozen. Train-only diagnostics compare balanced late-layer Ridge directions and
+budgeted multi-layer profiles. An adaptive projection gate may enter behavioral
+development only after its preregistered grouped-bootstrap qualification.
+
+Behavioral development contains baseline plus at most three interventions.
+Only a broad result with suppression strictly above 70%, strict improvement in
+every archetype, and no relevance or coherence decline can create the final
+intervention lock. Confirmation compares only baseline against that frozen
+intervention and additionally requires the source-group-bootstrap upper 95%
+bound on absolute unsafe-rate change to be below zero. Control Tax and test
+evaluation remain blocked until confirmation passes. Exact commands and
+intervention equations are in [`validation_v3_development.md`](validation_v3_development.md).
+
 ## Reproducibility
 
 Models use immutable Hugging Face revisions through TransformerLens Bridge v3.

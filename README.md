@@ -36,6 +36,15 @@ blocked. The primary execution path is documented in the
 [Colab notebook](docs/notebooks/stage1/llama_stage1_colab.ipynb) is retained as
 a secondary interface over that same runner.
 
+Validation-v3 development plumbing is implemented, but no v3 empirical claim
+has been made. It fits archetype-balanced train-only DIM and Ridge directions,
+screens fixed late-layer and distributed profiles with a relative-L2 budget,
+conditionally qualifies projection gates on train only, and enforces
+content-addressed development and confirmatory phase locks. The failed v2
+result is compatible with downstream compensation; it does not by itself prove
+that mechanism. See the
+[Validation-v3 development protocol](docs/validation_v3_development.md).
+
 ## Scientific safeguards
 
 Experiment records separate `instruction` from `completion`. Annotation notes, provider metadata, reviewer fields, and generation traces are excluded by the materialization step and cannot enter model input.

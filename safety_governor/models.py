@@ -20,6 +20,41 @@ class TokenizedBatch:
     final_response_positions: object
 
 
+@dataclass(frozen=True)
+class ProjectionGate:
+    """Train-calibrated projection gate for one activation site."""
+
+    threshold: float
+    transition_width: float
+
+    def __post_init__(self):
+        if not np.isfinite(self.threshold):
+            raise ValueError("projection-gate threshold must be finite")
+        if not np.isfinite(self.transition_width) or self.transition_width <= 0:
+            raise ValueError("projection-gate transition width must be positive")
+
+
+@dataclass(frozen=True)
+class SteeringSite:
+    """One layer in a relative-L2 multi-site steering profile."""
+
+    layer: int
+    vector: np.ndarray
+    profile_weight: float
+    gate: ProjectionGate | None = None
+
+    def __post_init__(self):
+        vector = np.asarray(self.vector)
+        if vector.ndim != 1 or not np.isfinite(vector).all():
+            raise ValueError("steering-site vector must be finite and one-dimensional")
+        if not np.isclose(np.linalg.norm(vector), 1.0, atol=1e-5):
+            raise ValueError("steering-site vector must be unit normalized")
+        if self.layer < 0:
+            raise ValueError("steering-site layer must be non-negative")
+        if not np.isfinite(self.profile_weight) or self.profile_weight <= 0:
+            raise ValueError("steering-site profile weight must be positive")
+
+
 def resolve_torch_dtype(name: str):
     """Resolve an explicit research-runtime dtype without silent fallback."""
 
@@ -282,6 +317,112 @@ def generate_with_steering(
     return tokenizer.decode(generated, skip_special_tokens=True)
 
 
+def _governor_intervention(site: SteeringSite, position: int, total_relative_l2: float, trace):
+    """Build a hook that spends one site's share of a relative-L2 budget."""
+
+    import torch
+
+    direction = torch.as_tensor(site.vector)
+
+    def intervention(activation, hook=None):
+        changed = activation.clone()
+        local = direction.to(device=changed.device, dtype=changed.dtype)
+        active = changed[0, position, :]
+        activation_l2 = torch.linalg.vector_norm(active)
+        projection = torch.dot(active, local)
+        gate_value = torch.ones((), device=changed.device, dtype=changed.dtype)
+        if site.gate is not None:
+            gate_value = torch.clamp(
+                (projection - site.gate.threshold) / site.gate.transition_width,
+                min=0.0,
+                max=1.0,
+            )
+        coefficient = total_relative_l2 * site.profile_weight * activation_l2 * gate_value
+        changed[0, position, :] -= coefficient * local
+        if trace is not None:
+            trace.append({
+                "layer": site.layer,
+                "position": position,
+                "activation_l2": float(activation_l2.detach().float().cpu()),
+                "projection": float(projection.detach().float().cpu()),
+                "gate": float(gate_value.detach().float().cpu()),
+                "coefficient": float(coefficient.detach().float().cpu()),
+                "relative_delta": float(
+                    (coefficient / activation_l2.clamp_min(torch.finfo(changed.dtype).eps))
+                    .detach().float().cpu()
+                ),
+            })
+        return changed
+
+    return intervention
+
+
+def generate_with_governor(
+    model,
+    instruction: str,
+    sites: list[SteeringSite],
+    *,
+    total_relative_l2: float,
+    max_new_tokens: int = 128,
+    trace: list[dict] | None = None,
+) -> str:
+    """Generate with a generation-frontier, relative-L2 multi-layer governor.
+
+    ``total_relative_l2`` is divided by the normalized profile weights. At each
+    site and decode step the injected vector norm is therefore
+    ``budget * weight * ||activation|| * gate``. This is an intervention budget,
+    not a claim that nonlinear downstream state differences add linearly.
+    """
+
+    if not sites:
+        raise ValueError("governor requires at least one steering site")
+    if not np.isfinite(total_relative_l2) or total_relative_l2 <= 0:
+        raise ValueError("total relative-L2 budget must be positive")
+    if max_new_tokens <= 0:
+        raise ValueError("max_new_tokens must be positive")
+    layers = [site.layer for site in sites]
+    if len(set(layers)) != len(layers):
+        raise ValueError("governor steering layers must be unique")
+    weight_sum = sum(site.profile_weight for site in sites)
+    if not np.isclose(weight_sum, 1.0, atol=1e-8):
+        raise ValueError("governor profile weights must sum to one")
+    import torch
+
+    tokenizer = model.tokenizer
+    prefix = _prefix_ids(tokenizer, instruction)
+    if not prefix:
+        raise ValueError("instruction produced an empty generation prefix")
+    try:
+        device = next(model.parameters()).device
+    except (AttributeError, StopIteration):
+        device = torch.device("cpu")
+    tokens = torch.tensor([prefix], dtype=torch.long, device=device)
+    generated: list[int] = []
+    eos_ids = _generation_stop_ids(tokenizer)
+    ordered = sorted(sites, key=lambda site: site.layer)
+    for _ in range(max_new_tokens):
+        position = tokens.shape[1] - 1
+        hooks = [
+            (
+                f"blocks.{site.layer}.hook_resid_pre",
+                _governor_intervention(site, position, total_relative_l2, trace),
+            )
+            for site in ordered
+        ]
+        logits = model.run_with_hooks(
+            tokens,
+            attention_mask=torch.ones_like(tokens, dtype=torch.bool),
+            return_type="logits",
+            fwd_hooks=hooks,
+        )
+        next_token = int(torch.argmax(logits[0, -1]).item())
+        if next_token in eos_ids:
+            break
+        generated.append(next_token)
+        tokens = torch.cat((tokens, torch.tensor([[next_token]], device=device)), dim=1)
+    return tokenizer.decode(generated, skip_special_tokens=True)
+
+
 def generate_unsteered(model, instruction: str, *, max_new_tokens: int = 128) -> str:
     """Greedily generate a deterministic unsteered baseline response."""
 
@@ -425,3 +566,116 @@ def response_negative_log_likelihood(
     targets = tokens[0, len(prefix):len(prefix) + len(response)]
     loss = functional.cross_entropy(predictors, targets, reduction="sum")
     return float(loss.detach().cpu()), len(response)
+
+
+def response_negative_log_likelihood_governed(
+    model,
+    instruction: str,
+    completion: str,
+    sites: list[SteeringSite],
+    *,
+    total_relative_l2: float,
+) -> tuple[float, int]:
+    """Teacher-force a completion under frontier-aligned multi-site steering."""
+
+    if not sites:
+        raise ValueError("governed likelihood requires steering sites")
+    if not np.isfinite(total_relative_l2) or total_relative_l2 <= 0:
+        raise ValueError("total relative-L2 budget must be positive")
+    if len({site.layer for site in sites}) != len(sites):
+        raise ValueError("governed likelihood steering layers must be unique")
+    if not np.isclose(sum(site.profile_weight for site in sites), 1.0, atol=1e-8):
+        raise ValueError("governor profile weights must sum to one")
+    import torch
+    import torch.nn.functional as functional
+
+    tokenizer = model.tokenizer
+    prefix = _prefix_ids(tokenizer, instruction)
+    response = list(tokenizer.encode(completion, add_special_tokens=False))
+    if not response:
+        raise ValueError("completion tokenized to an empty response")
+    try:
+        device = next(model.parameters()).device
+    except (AttributeError, StopIteration):
+        device = torch.device("cpu")
+    tokens = torch.tensor([prefix + response], dtype=torch.long, device=device)
+    attention = torch.ones_like(tokens, dtype=torch.bool)
+    boundary = len(prefix) - 1
+    last_predictor = len(prefix) + len(response) - 2
+
+    def hook_for(site: SteeringSite):
+        direction = torch.as_tensor(site.vector, device=device)
+
+        def intervention(activation, hook=None):
+            changed = activation.clone()
+            local = direction.to(device=changed.device, dtype=changed.dtype)
+            active = changed[0, boundary:last_predictor + 1, :]
+            norms = torch.linalg.vector_norm(active, dim=-1, keepdim=True)
+            projections = active @ local
+            gates = torch.ones_like(projections)
+            if site.gate is not None:
+                gates = torch.clamp(
+                    (projections - site.gate.threshold) / site.gate.transition_width,
+                    min=0.0,
+                    max=1.0,
+                )
+            coefficients = total_relative_l2 * site.profile_weight * norms * gates[:, None]
+            changed[0, boundary:last_predictor + 1, :] -= coefficients * local
+            return changed
+
+        return intervention
+
+    logits = model.run_with_hooks(
+        tokens,
+        attention_mask=attention,
+        return_type="logits",
+        fwd_hooks=[
+            (f"blocks.{site.layer}.hook_resid_pre", hook_for(site))
+            for site in sorted(sites, key=lambda item: item.layer)
+        ],
+    )
+    start = len(prefix) - 1
+    predictors = logits[0, start:start + len(response), :]
+    targets = tokens[0, len(prefix):len(prefix) + len(response)]
+    loss = functional.cross_entropy(predictors, targets, reduction="sum")
+    return float(loss.detach().cpu()), len(response)
+
+
+def response_predictor_projections(
+    model,
+    instruction: str,
+    completion: str,
+    *,
+    layer: int,
+    vector: np.ndarray,
+) -> np.ndarray:
+    """Project unmodified response-predictor states onto one unit direction."""
+
+    if vector.ndim != 1 or not np.isfinite(vector).all():
+        raise ValueError("projection vector must be finite and one-dimensional")
+    if not np.isclose(np.linalg.norm(vector), 1.0, atol=1e-5):
+        raise ValueError("projection vector must be unit normalized")
+    import torch
+
+    tokenizer = model.tokenizer
+    prefix = _prefix_ids(tokenizer, instruction)
+    response = list(tokenizer.encode(completion, add_special_tokens=False))
+    if not response:
+        raise ValueError("completion tokenized to an empty response")
+    try:
+        device = next(model.parameters()).device
+    except (AttributeError, StopIteration):
+        device = torch.device("cpu")
+    tokens = torch.tensor([prefix + response], dtype=torch.long, device=device)
+    hook = f"blocks.{layer}.hook_resid_pre"
+    _, cache = model.run_with_cache(
+        tokens,
+        attention_mask=torch.ones_like(tokens, dtype=torch.bool),
+        return_type=None,
+        names_filter=lambda name: name == hook,
+    )
+    boundary = len(prefix) - 1
+    last_predictor = len(prefix) + len(response) - 2
+    states = cache[hook][0, boundary:last_predictor + 1, :]
+    local = torch.as_tensor(vector, device=states.device, dtype=states.dtype)
+    return (states @ local).detach().float().cpu().numpy()

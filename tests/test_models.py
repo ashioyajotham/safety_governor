@@ -4,6 +4,9 @@ import numpy as np
 import pytest
 
 from safety_governor.models import (
+    ProjectionGate,
+    SteeringSite,
+    generate_with_governor,
     generate_with_steering,
     residual_at_last_token,
     residual_at_response,
@@ -224,3 +227,71 @@ def test_generation_steers_opposite_unsafe_direction_at_frontier():
     assert torch.equal(model.activations[0][0, -1], torch.tensor([-2., -4.]))
     assert torch.equal(model.activations[1][0, -1], torch.tensor([-2., -4.]))
     assert torch.equal(model.activations[1][0, 0], torch.zeros(2))
+
+
+def test_multi_layer_governor_spends_relative_l2_profile_at_frontier():
+    torch = pytest.importorskip("torch")
+
+    class Tokenizer:
+        chat_template = None
+        pad_token_id = 0
+        eos_token_id = 9
+
+        def encode(self, text, add_special_tokens):
+            return [1, 2] if text.startswith("User:") else [3]
+
+        def decode(self, tokens, skip_special_tokens):
+            return "generated"
+
+    class FakeModel:
+        tokenizer = Tokenizer()
+
+        def __init__(self):
+            self.weight = torch.nn.Parameter(torch.zeros(1))
+            self.by_layer = {}
+
+        def parameters(self):
+            yield self.weight
+
+        def run_with_hooks(self, tokens, attention_mask, return_type, fwd_hooks):
+            for name, hook in fwd_hooks:
+                activation = torch.zeros((1, tokens.shape[1], 2))
+                activation[0, -1] = torch.tensor([3., 4.])
+                self.by_layer[name] = hook(activation)
+            logits = torch.zeros((1, tokens.shape[1], 10))
+            logits[0, -1, 9] = 1
+            return logits
+
+    trace = []
+    model = FakeModel()
+    sites = [
+        SteeringSite(12, np.array([1., 0.]), 0.25),
+        SteeringSite(24, np.array([0., 1.]), 0.75),
+    ]
+    assert generate_with_governor(
+        model, "prompt", sites, total_relative_l2=0.2, max_new_tokens=1, trace=trace
+    ) == ""
+    assert torch.allclose(
+        model.by_layer["blocks.12.hook_resid_pre"][0, -1],
+        torch.tensor([2.75, 4.0]),
+    )
+    assert torch.allclose(
+        model.by_layer["blocks.24.hook_resid_pre"][0, -1],
+        torch.tensor([3.0, 3.25]),
+    )
+    assert [round(row["relative_delta"], 3) for row in trace] == [0.05, 0.15]
+
+
+def test_projection_gate_can_leave_activation_untouched():
+    torch = pytest.importorskip("torch")
+    from safety_governor.models import _governor_intervention
+
+    site = SteeringSite(
+        12,
+        np.array([1., 0.]),
+        1.0,
+        gate=ProjectionGate(threshold=2.0, transition_width=1.0),
+    )
+    activation = torch.tensor([[[1., 2.]]])
+    changed = _governor_intervention(site, 0, 0.5, None)(activation)
+    assert torch.equal(changed, activation)
