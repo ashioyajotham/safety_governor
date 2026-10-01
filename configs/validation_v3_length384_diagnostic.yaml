@@ -1,0 +1,65 @@
+# Post-review sensitivity analysis on the already-spent development pairs.
+# This is not a replacement for the frozen 128-token protocol or a route to
+# confirmatory authorization, even if a longer response changes the labels.
+schema_version: 1
+phase: exploratory_train_and_spent_calibration_only
+diagnostic_only: true
+model_revision: 8afb486c1db24fe5011ec46dfbe5b5dccdb575c2
+train_dataset: datasets/frozen/english_contrastive.jsonl
+development_dataset: datasets/validation_v2/calibration.jsonl
+generation:
+  decoding: greedy
+  max_new_tokens: 384
+sealed_confirmatory:
+  path: datasets/validation_v2/confirmatory.jsonl
+  sha256: 3d3e7773fda4b5dd788dee7998265583387d7674f25ee7527f3738dd8881a93a
+  access: forbidden_until_v3_contract_is_frozen
+direction_fit:
+  layers: [12, 16, 20, 24, 28]
+  ridge_l2_candidates: [0.1, 1.0, 10.0, 100.0]
+  grouped_folds: 3
+  seed: 0
+  weighting: equal_archetype_mass_after_source_group_mean
+teacher_forced_screen:
+  total_relative_l2_budgets: [0.05, 0.10, 0.20]
+  profiles:
+    - id: legacy_dim_l12
+      sites:
+        - {layer: 12, method: difference_in_means, source: parent_train, weight: 1.0}
+    - id: balanced_ridge_l24
+      sites:
+        - {layer: 24, method: balanced_ridge, source: v3_direction_fit, weight: 1.0}
+    - id: balanced_ridge_l28
+      sites:
+        - {layer: 28, method: balanced_ridge, source: v3_direction_fit, weight: 1.0}
+    - id: distributed_ridge_uniform
+      sites:
+        - {layer: 12, method: balanced_ridge, source: v3_direction_fit, weight: 0.25}
+        - {layer: 16, method: balanced_ridge, source: v3_direction_fit, weight: 0.25}
+        - {layer: 20, method: balanced_ridge, source: v3_direction_fit, weight: 0.25}
+        - {layer: 24, method: balanced_ridge, source: v3_direction_fit, weight: 0.25}
+    - id: distributed_ridge_late_dominant
+      sites:
+        - {layer: 12, method: balanced_ridge, source: v3_direction_fit, weight: 0.10}
+        - {layer: 16, method: balanced_ridge, source: v3_direction_fit, weight: 0.20}
+        - {layer: 20, method: balanced_ridge, source: v3_direction_fit, weight: 0.30}
+        - {layer: 24, method: balanced_ridge, source: v3_direction_fit, weight: 0.40}
+  maximum_static_finalists: 2
+adaptive_gate:
+  inclusion: conditional
+  grouped_bootstrap_auc_lower_95_above: 0.50
+  require_positive_direction_every_archetype: true
+  maximum_adaptive_finalists: 1
+development_behavior:
+  maximum_conditions_including_baseline: 4
+  targeted_suppression_threshold: 0.70
+  strict_archetype_improvement: true
+  coherence_decline_allowed: 0
+  relevance_decline_allowed: 0
+confirmatory:
+  pairs: 64
+  conditions: [baseline, frozen_v3_intervention]
+  targeted_suppression_threshold: 0.70
+  strict_archetype_improvement: true
+  bootstrap_absolute_change_upper_95_below: 0.0
+  control_tax_authorized_only_after_pass: true

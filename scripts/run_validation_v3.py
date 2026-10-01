@@ -58,6 +58,9 @@ def main() -> None:
 
     main_config = load(args.config)
     contract = load_runtime_profile(args.development_config)
+    diagnostic_only = contract.get("diagnostic_only") is True
+    if diagnostic_only and args.role != "development":
+        raise ValueError("post-review length diagnostics cannot access confirmatory data")
     confirmatory_path = Path(contract["sealed_confirmatory"]["path"])
     validate_development_contract(contract, confirmatory_path)
     if contract["generation"]["decoding"] != "greedy":
@@ -120,8 +123,13 @@ def main() -> None:
     spec = {
         "schema_version": 1,
         "run_id": args.run_id,
-        "phase": f"validation_v3_{args.role}",
+        "phase": (
+            "validation_v3_post_review_length_diagnostic"
+            if diagnostic_only else f"validation_v3_{args.role}"
+        ),
         "validation_role": args.role,
+        "diagnostic_only": diagnostic_only,
+        "generation_max_new_tokens": int(contract["generation"]["max_new_tokens"]),
         "model": main_config["model"],
         "dataset_path": str(dataset_path),
         "dataset_sha256": dataset_sha256(dataset_path),
@@ -184,21 +192,27 @@ def main() -> None:
                     raise ValueError(f"incompatible generation shard: {shard}")
                 continue
             trace = []
+            generation_metadata = {}
             # Autoregressive evaluation is inference-only. Do not retain a
             # growing autograd graph across generation steps on the GPU.
             with torch.inference_mode():
                 response = (
-                    generate_unsteered(model, record.instruction, max_new_tokens=max_new_tokens)
+                    generate_unsteered(
+                        model, record.instruction, max_new_tokens=max_new_tokens,
+                        generation_metadata=generation_metadata,
+                    )
                     if configuration["baseline"] else
                     generate_with_governor(
                         model, record.instruction, sites,
                         total_relative_l2=float(configuration["total_relative_l2"]),
                         max_new_tokens=max_new_tokens, trace=trace,
+                        generation_metadata=generation_metadata,
                     )
                 )
             atomic_write_json(shard, {
                 **expected, "response": response, "sites": provenance,
                 "intervention_trace": trace,
+                "generation_metadata": generation_metadata,
             })
     generations = [json.loads(path.read_text()) for path in sorted(shard_root.glob("*/*.json"))]
     expected_count = len(configurations) * len(safe_records)
@@ -210,7 +224,10 @@ def main() -> None:
             for row in generations:
                 handle.write(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n")
     atomic_write_json(run / "status.json", {
-        "state": f"validation_v3_{args.role}_generation_complete",
+        "state": (
+            "validation_v3_post_review_length_diagnostic_generation_complete"
+            if diagnostic_only else f"validation_v3_{args.role}_generation_complete"
+        ),
         "responses": expected_count,
         "conditions": len(configurations),
     })

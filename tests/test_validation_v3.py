@@ -1,8 +1,13 @@
 import hashlib
+import json
+from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
+import pytest
 import yaml
 
+from scripts.validation_v3_review import summarize
 from safety_governor.validation_v3 import (
     calibrate_projection_gate,
     expand_screen_candidates,
@@ -125,3 +130,27 @@ def test_final_lock_is_content_addressed(tmp_path):
     })
     verified = verify_content_lock(path, lock_type="validation_v3_final_intervention")
     assert verified["lock_sha256"] == digest
+
+
+def test_384_token_diagnostic_preserves_original_candidate_matrix():
+    root = Path(__file__).resolve().parents[1]
+    original = yaml.safe_load((root / "configs/validation_v3_development.yaml").read_text())
+    diagnostic = yaml.safe_load((root / "configs/validation_v3_length384_diagnostic.yaml").read_text())
+    assert diagnostic.pop("diagnostic_only") is True
+    assert diagnostic["generation"]["max_new_tokens"] == 384
+    diagnostic["generation"]["max_new_tokens"] = 128
+    assert diagnostic == original
+
+
+def test_diagnostic_review_cannot_promote_even_with_development_role(tmp_path):
+    run = tmp_path / "run"
+    run.mkdir()
+    (run / "validation_spec.json").write_text(json.dumps({
+        "validation_role": "development", "diagnostic_only": True,
+    }))
+    args = SimpleNamespace(run=run, role="development", decisions=tmp_path / "decisions.jsonl",
+                           development_config=tmp_path / "contract.yaml")
+    with pytest.raises(ValueError, match="cannot create a final intervention lock"):
+        summarize(args)
+    assert not (run / "review_decisions.jsonl").exists()
+    assert not (run / "final_intervention_lock.json").exists()

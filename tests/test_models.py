@@ -6,6 +6,7 @@ import pytest
 from safety_governor.models import (
     ProjectionGate,
     SteeringSite,
+    generate_unsteered,
     generate_with_governor,
     generate_with_steering,
     residual_at_last_token,
@@ -263,14 +264,19 @@ def test_multi_layer_governor_spends_relative_l2_profile_at_frontier():
             return logits
 
     trace = []
+    metadata = {}
     model = FakeModel()
     sites = [
         SteeringSite(12, np.array([1., 0.]), 0.25),
         SteeringSite(24, np.array([0., 1.]), 0.75),
     ]
     assert generate_with_governor(
-        model, "prompt", sites, total_relative_l2=0.2, max_new_tokens=1, trace=trace
+        model, "prompt", sites, total_relative_l2=0.2, max_new_tokens=1,
+        trace=trace, generation_metadata=metadata,
     ) == ""
+    assert metadata == {
+        "generated_token_count": 0, "stop_reason": "stop_token", "stop_token_id": 9,
+    }
     assert torch.allclose(
         model.by_layer["blocks.12.hook_resid_pre"][0, -1],
         torch.tensor([2.75, 4.0]),
@@ -280,6 +286,89 @@ def test_multi_layer_governor_spends_relative_l2_profile_at_frontier():
         torch.tensor([3.0, 3.25]),
     )
     assert [round(row["relative_delta"], 3) for row in trace] == [0.05, 0.15]
+
+
+def test_multi_layer_governor_records_token_limit():
+    torch = pytest.importorskip("torch")
+
+    class Tokenizer:
+        chat_template = None
+        eos_token_id = 9
+
+        def encode(self, text, add_special_tokens):
+            return [1, 2]
+
+        def decode(self, tokens, skip_special_tokens):
+            return "x" * len(tokens)
+
+    class FakeModel:
+        tokenizer = Tokenizer()
+
+        def __init__(self):
+            self.weight = torch.nn.Parameter(torch.zeros(1))
+
+        def parameters(self):
+            yield self.weight
+
+        def run_with_hooks(self, tokens, attention_mask, return_type, fwd_hooks):
+            activation = torch.tensor([[[3.0, 4.0]]]).expand(1, tokens.shape[1], 2)
+            for _, hook in fwd_hooks:
+                hook(activation.clone())
+            logits = torch.zeros((1, tokens.shape[1], 10))
+            logits[0, -1, 3] = 1
+            return logits
+
+    metadata = {}
+    response = generate_with_governor(
+        FakeModel(), "prompt", [SteeringSite(12, np.array([1., 0.]), 1.0)],
+        total_relative_l2=0.2, max_new_tokens=2, generation_metadata=metadata,
+    )
+    assert response == "xx"
+    assert metadata == {
+        "generated_token_count": 2, "stop_reason": "token_limit", "stop_token_id": None,
+    }
+
+
+@pytest.mark.parametrize("stop_at_eos", [False, True])
+def test_unsteered_generation_records_stop_reason(stop_at_eos):
+    torch = pytest.importorskip("torch")
+
+    class Tokenizer:
+        chat_template = None
+        eos_token_id = 9
+
+        def encode(self, text, add_special_tokens):
+            return [1, 2]
+
+        def decode(self, tokens, skip_special_tokens):
+            return "x" * len(tokens)
+
+    class FakeModel:
+        tokenizer = Tokenizer()
+
+        def __init__(self):
+            self.weight = torch.nn.Parameter(torch.zeros(1))
+            self.calls = 0
+
+        def parameters(self):
+            yield self.weight
+
+        def __call__(self, tokens, attention_mask):
+            self.calls += 1
+            logits = torch.zeros((1, tokens.shape[1], 10))
+            logits[0, -1, 9 if stop_at_eos and self.calls == 2 else 3] = 1
+            return logits
+
+    metadata = {}
+    response = generate_unsteered(
+        FakeModel(), "prompt", max_new_tokens=2, generation_metadata=metadata,
+    )
+    assert response == ("x" if stop_at_eos else "xx")
+    assert metadata == {
+        "generated_token_count": 1 if stop_at_eos else 2,
+        "stop_reason": "stop_token" if stop_at_eos else "token_limit",
+        "stop_token_id": 9 if stop_at_eos else None,
+    }
 
 
 def test_projection_gate_can_leave_activation_untouched():

@@ -365,6 +365,7 @@ def generate_with_governor(
     total_relative_l2: float,
     max_new_tokens: int = 128,
     trace: list[dict] | None = None,
+    generation_metadata: dict | None = None,
 ) -> str:
     """Generate with a generation-frontier, relative-L2 multi-layer governor.
 
@@ -400,6 +401,7 @@ def generate_with_governor(
     generated: list[int] = []
     eos_ids = _generation_stop_ids(tokenizer)
     ordered = sorted(sites, key=lambda site: site.layer)
+    stop_token_id = None
     for _ in range(max_new_tokens):
         position = tokens.shape[1] - 1
         hooks = [
@@ -417,13 +419,26 @@ def generate_with_governor(
         )
         next_token = int(torch.argmax(logits[0, -1]).item())
         if next_token in eos_ids:
+            stop_token_id = next_token
             break
         generated.append(next_token)
         tokens = torch.cat((tokens, torch.tensor([[next_token]], device=device)), dim=1)
+    if generation_metadata is not None:
+        generation_metadata.update({
+            "generated_token_count": len(generated),
+            "stop_reason": "stop_token" if stop_token_id is not None else "token_limit",
+            "stop_token_id": stop_token_id,
+        })
     return tokenizer.decode(generated, skip_special_tokens=True)
 
 
-def generate_unsteered(model, instruction: str, *, max_new_tokens: int = 128) -> str:
+def generate_unsteered(
+    model,
+    instruction: str,
+    *,
+    max_new_tokens: int = 128,
+    generation_metadata: dict | None = None,
+) -> str:
     """Greedily generate a deterministic unsteered baseline response."""
 
     if max_new_tokens <= 0:
@@ -439,15 +454,23 @@ def generate_unsteered(model, instruction: str, *, max_new_tokens: int = 128) ->
     tokens = torch.tensor([prefix], dtype=torch.long, device=device)
     generated: list[int] = []
     eos_ids = _generation_stop_ids(tokenizer)
+    stop_token_id = None
     for _ in range(max_new_tokens):
         logits = model(tokens, attention_mask=torch.ones_like(tokens, dtype=torch.bool))
         if hasattr(logits, "logits"):
             logits = logits.logits
         next_token = int(torch.argmax(logits[0, -1]).item())
         if next_token in eos_ids:
+            stop_token_id = next_token
             break
         generated.append(next_token)
         tokens = torch.cat((tokens, torch.tensor([[next_token]], device=device)), dim=1)
+    if generation_metadata is not None:
+        generation_metadata.update({
+            "generated_token_count": len(generated),
+            "stop_reason": "stop_token" if stop_token_id is not None else "token_limit",
+            "stop_token_id": stop_token_id,
+        })
     return tokenizer.decode(generated, skip_special_tokens=True)
 
 
