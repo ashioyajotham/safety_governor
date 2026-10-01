@@ -6,6 +6,8 @@ import json
 import os
 from pathlib import Path
 
+import torch
+
 from safety_governor.config import load
 from safety_governor.data import dataset_sha256, load_jsonl, validate_records
 from safety_governor.models import (
@@ -182,15 +184,18 @@ def main() -> None:
                     raise ValueError(f"incompatible generation shard: {shard}")
                 continue
             trace = []
-            response = (
-                generate_unsteered(model, record.instruction, max_new_tokens=max_new_tokens)
-                if configuration["baseline"] else
-                generate_with_governor(
-                    model, record.instruction, sites,
-                    total_relative_l2=float(configuration["total_relative_l2"]),
-                    max_new_tokens=max_new_tokens, trace=trace,
+            # Autoregressive evaluation is inference-only. Do not retain a
+            # growing autograd graph across generation steps on the GPU.
+            with torch.inference_mode():
+                response = (
+                    generate_unsteered(model, record.instruction, max_new_tokens=max_new_tokens)
+                    if configuration["baseline"] else
+                    generate_with_governor(
+                        model, record.instruction, sites,
+                        total_relative_l2=float(configuration["total_relative_l2"]),
+                        max_new_tokens=max_new_tokens, trace=trace,
+                    )
                 )
-            )
             atomic_write_json(shard, {
                 **expected, "response": response, "sites": provenance,
                 "intervention_trace": trace,
