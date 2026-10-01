@@ -241,7 +241,7 @@ def test_multi_layer_governor_spends_relative_l2_profile_at_frontier():
             return [1, 2] if text.startswith("User:") else [3]
 
         def decode(self, tokens, skip_special_tokens):
-            return "generated"
+            return "generated" if tokens else ""
 
     class FakeModel:
         tokenizer = Tokenizer()
