@@ -97,7 +97,6 @@ python -m scripts.calibrate_validation_v3_gates \
   configs/llama3_8b.yaml \
   --development-config configs/validation_v3_development.yaml \
   --runtime-profile configs/runtime/vast_bf16.yaml \
-  --train-run /data/safety_governor/artifacts/llama3-stage1-response-mean-hf-native \
   --direction-run /data/safety_governor/artifacts/llama3-validation-v3-directions \
   --run-id llama3-validation-v3-gates --resume
 ```

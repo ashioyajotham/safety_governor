@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 
 import numpy as np
+import torch
 
 from safety_governor.config import load
 from safety_governor.data import load_jsonl, validate_records
@@ -107,14 +108,17 @@ def main() -> None:
             shard = run / "shards" / f"layer_{layer:02d}" / f"{pair_id}.json"
             if shard.exists():
                 continue
-            safe_scores = response_predictor_projections(
-                model, safe[pair_id].instruction, safe[pair_id].completion,
-                layer=layer, vector=vectors[layer],
-            )
-            unsafe_scores = response_predictor_projections(
-                model, unsafe[pair_id].instruction, unsafe[pair_id].completion,
-                layer=layer, vector=vectors[layer],
-            )
+            # Projection collection is inference-only; autograd would retain
+            # full-response graphs and can exhaust a 40 GB GPU.
+            with torch.inference_mode():
+                safe_scores = response_predictor_projections(
+                    model, safe[pair_id].instruction, safe[pair_id].completion,
+                    layer=layer, vector=vectors[layer],
+                )
+                unsafe_scores = response_predictor_projections(
+                    model, unsafe[pair_id].instruction, unsafe[pair_id].completion,
+                    layer=layer, vector=vectors[layer],
+                )
             atomic_write_json(shard, {
                 "pair_id": pair_id,
                 "source_group_id": safe[pair_id].source_group_id,
