@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 
 import numpy as np
+import torch
 
 from safety_governor.config import load
 from safety_governor.data import load_jsonl, validate_records
@@ -184,22 +185,25 @@ def main() -> None:
             shard = run / "shards" / candidate_id / f"{safe.pair_id}.json"
             if shard.exists():
                 continue
-            if candidate_id == "baseline":
-                safe_nll, safe_tokens = response_negative_log_likelihood(
-                    model, safe.instruction, safe.completion
-                )
-                unsafe_nll, unsafe_tokens = response_negative_log_likelihood(
-                    model, unsafe.instruction, unsafe.completion
-                )
-            else:
-                safe_nll, safe_tokens = response_negative_log_likelihood_governed(
-                    model, safe.instruction, safe.completion, sites,
-                    total_relative_l2=float(candidate["total_relative_l2"]),
-                )
-                unsafe_nll, unsafe_tokens = response_negative_log_likelihood_governed(
-                    model, unsafe.instruction, unsafe.completion, sites,
-                    total_relative_l2=float(candidate["total_relative_l2"]),
-                )
+            # Teacher-forced scoring never trains the model. Retaining autograd
+            # graphs across full responses can exhaust a 40 GB A100.
+            with torch.inference_mode():
+                if candidate_id == "baseline":
+                    safe_nll, safe_tokens = response_negative_log_likelihood(
+                        model, safe.instruction, safe.completion
+                    )
+                    unsafe_nll, unsafe_tokens = response_negative_log_likelihood(
+                        model, unsafe.instruction, unsafe.completion
+                    )
+                else:
+                    safe_nll, safe_tokens = response_negative_log_likelihood_governed(
+                        model, safe.instruction, safe.completion, sites,
+                        total_relative_l2=float(candidate["total_relative_l2"]),
+                    )
+                    unsafe_nll, unsafe_tokens = response_negative_log_likelihood_governed(
+                        model, unsafe.instruction, unsafe.completion, sites,
+                        total_relative_l2=float(candidate["total_relative_l2"]),
+                    )
             atomic_write_json(shard, {
                 "candidate_id": candidate_id,
                 "pair_id": safe.pair_id,
