@@ -45,6 +45,11 @@ result is compatible with downstream compensation; it does not by itself prove
 that mechanism. See the
 [Validation-v3 development protocol](docs/validation_v3_development.md).
 
+A separate [768-token token-policy diagnostic](docs/validation_v3_policy_diagnostic.md)
+compares frontier-only and generated-span steering on spent development prompts.
+It preserves the frozen 128-token protocol, reuses verified 768-token comparison
+outputs, and cannot authorize confirmation. Implementation is not efficacy evidence.
+
 ## Scientific safeguards
 
 Experiment records separate `instruction` from `completion`. Annotation notes, provider metadata, reviewer fields, and generation traces are excluded by the materialization step and cannot enter model input.

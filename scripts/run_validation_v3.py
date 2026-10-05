@@ -59,8 +59,11 @@ def main() -> None:
     main_config = load(args.config)
     contract = load_runtime_profile(args.development_config)
     diagnostic_only = contract.get("diagnostic_only") is True
+    policy_diagnostic = contract.get("diagnostic_kind") == "token_policy"
+    if policy_diagnostic and not diagnostic_only:
+        raise ValueError("token-policy comparisons must remain diagnostic-only")
     if diagnostic_only and args.role != "development":
-        raise ValueError("post-review length diagnostics cannot access confirmatory data")
+        raise ValueError("diagnostic-only runs cannot access confirmatory data")
     confirmatory_path = Path(contract["sealed_confirmatory"]["path"])
     validate_development_contract(contract, confirmatory_path)
     if contract["generation"]["decoding"] != "greedy":
@@ -90,6 +93,12 @@ def main() -> None:
         dataset_path = confirmatory_path
     if len(candidates) + 1 > int(contract["development_behavior"]["maximum_conditions_including_baseline"]):
         raise ValueError("phase lock exceeds the behavioral condition cap")
+    for candidate in candidates:
+        policy = candidate.get("token_mode", "generation_frontier")
+        if policy not in {"generation_frontier", "generated_span"}:
+            raise ValueError("unsupported candidate token policy")
+        if policy != "generation_frontier" and not policy_diagnostic:
+            raise ValueError("generated-span policy requires the separate diagnostic contract")
 
     records = load_jsonl(dataset_path)
     raw = _raw(dataset_path)
@@ -120,11 +129,40 @@ def main() -> None:
         raise ValueError("sealed confirmatory pair count changed")
 
     configurations = [{"baseline": True}] + [{"baseline": False, **row} for row in candidates]
+    reused = {}
+    if policy_diagnostic:
+        from scripts.prepare_validation_v3_policy import verified_source
+        source = Path(contract["reuse_source"])
+        source_spec, source_rows = verified_source(source, contract["reuse_source_hashes"])
+        if (source_spec["dataset_sha256"] != dataset_sha256(dataset_path) or
+                source_spec["model"] != main_config["model"] or
+                set(source_spec["pair_ids"]) != set(safe_records)):
+            raise ValueError("archived source dataset/model/pairs differ")
+        if (len(candidates) != 2 or candidates[0].get("token_mode") != "generation_frontier" or
+                candidates[1].get("token_mode") != "generated_span" or
+                {k: v for k, v in candidates[0].items() if k not in {"candidate_id", "token_mode"}} !=
+                {k: v for k, v in candidates[1].items() if k not in {"candidate_id", "token_mode"}}):
+            raise ValueError("policy diagnostic must change only token coverage")
+        _, provenance = load_candidate_sites(candidates[0], args.train_run.resolve(), args.direction_run.resolve())
+        for row in source_rows:
+            if row["configuration"] not in configurations[:2]:
+                continue
+            pair = safe_raw[row["pair_id"]]
+            if any(row[key] != pair[key] for key in ("instruction", "archetype", "source_group_id")):
+                raise ValueError("archived source prompt metadata differs")
+            if not row["configuration"]["baseline"]:
+                old = row.get("sites") or []
+                if [{k: s[k] for k in ("layer", "method", "source", "weight", "sha256")} for s in old] != [
+                        {k: s[k] for k in ("layer", "method", "source", "weight", "sha256")} for s in provenance]:
+                    raise ValueError("archived frontier vector provenance differs")
+            reused[(row["generation_id"], row["pair_id"])] = row
+        if len(reused) != 2 * len(safe_records):
+            raise ValueError("missing archived baseline/frontier outputs; refusing regeneration")
     spec = {
         "schema_version": 1,
         "run_id": args.run_id,
         "phase": (
-            "validation_v3_post_review_length_diagnostic"
+            ("validation_v3_token_policy_diagnostic" if policy_diagnostic else "validation_v3_post_review_length_diagnostic")
             if diagnostic_only else f"validation_v3_{args.role}"
         ),
         "validation_role": args.role,
@@ -145,6 +183,9 @@ def main() -> None:
         "archetypes": [safe_raw[key]["archetype"] for key in sorted(safe_records)],
         "git_sha": facts["git_sha"],
     }
+    if policy_diagnostic:
+        spec["reuse_source_hashes"] = contract["reuse_source_hashes"]
+        spec["promotion_authorized"] = False
     run = artifact_root / args.run_id
     run.mkdir(parents=True, exist_ok=True)
     spec_path = run / "validation_spec.json"
@@ -186,10 +227,23 @@ def main() -> None:
                 "source_group_id": record.source_group_id,
                 "configuration": configuration,
             }
+            if policy_diagnostic:
+                expected.update(
+                    token_policy="unsteered" if configuration["baseline"] else configuration["token_mode"],
+                    generation_max_new_tokens=max_new_tokens,
+                )
             if shard.exists():
                 existing = json.loads(shard.read_text(encoding="utf-8"))
                 if {key: existing[key] for key in expected} != expected:
                     raise ValueError(f"incompatible generation shard: {shard}")
+                continue
+            source_row = reused.get((generation_id, pair_id))
+            if source_row is not None:
+                atomic_write_json(shard, {
+                    **source_row, **expected,
+                    "reuse_provenance": {"source_generation_id": source_row["generation_id"],
+                                        "source_hashes": contract["reuse_source_hashes"]},
+                })
                 continue
             trace = []
             generation_metadata = {}
@@ -207,6 +261,7 @@ def main() -> None:
                         total_relative_l2=float(configuration["total_relative_l2"]),
                         max_new_tokens=max_new_tokens, trace=trace,
                         generation_metadata=generation_metadata,
+                        token_policy=configuration.get("token_mode", "generation_frontier"),
                     )
                 )
             atomic_write_json(shard, {
@@ -225,7 +280,8 @@ def main() -> None:
                 handle.write(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n")
     atomic_write_json(run / "status.json", {
         "state": (
-            "validation_v3_post_review_length_diagnostic_generation_complete"
+            ("validation_v3_token_policy_diagnostic_generation_complete" if policy_diagnostic else
+             "validation_v3_post_review_length_diagnostic_generation_complete")
             if diagnostic_only else f"validation_v3_{args.role}_generation_complete"
         ),
         "responses": expected_count,

@@ -357,6 +357,41 @@ def _governor_intervention(site: SteeringSite, position: int, total_relative_l2:
     return intervention
 
 
+def _governor_span_intervention(site, start, end, total_relative_l2, trace):
+    """Steer a generated span using each position's own original L2 norm.
+
+    Trace one aggregate per site/forward pass, rather than synchronizing the
+    GPU once per historical token. Exposure is not a downstream norm bound.
+    """
+    import torch
+
+    def intervention(activation, hook=None):
+        changed = activation.clone()
+        local = torch.as_tensor(site.vector, device=changed.device, dtype=changed.dtype)
+        active = changed[0, start:end, :]
+        norms = torch.linalg.vector_norm(active, dim=-1)
+        projections = active @ local
+        gates = torch.ones_like(norms)
+        if site.gate is not None:
+            gates = ((projections - site.gate.threshold) / site.gate.transition_width).clamp(0, 1)
+        coefficients = total_relative_l2 * site.profile_weight * norms * gates
+        changed[0, start:end, :] = active - coefficients[:, None] * local
+        if trace is not None:
+            relative = coefficients / norms.clamp_min(torch.finfo(changed.dtype).eps)
+            values = torch.stack([
+                norms.mean(), projections.mean(), gates.mean(), coefficients.mean(),
+                relative.mean(), relative.min(), relative.max(), coefficients.sum(),
+            ]).detach().float().cpu().tolist()
+            trace.append(dict(zip(
+                ("activation_l2", "projection", "gate", "coefficient", "relative_delta",
+                 "relative_delta_min", "relative_delta_max", "injected_l2_sum"), values,
+            ), layer=site.layer, position=end - 1, position_start=start,
+                position_end_exclusive=end, modified_positions=end - start))
+        return changed
+
+    return intervention
+
+
 def generate_with_governor(
     model,
     instruction: str,
@@ -366,15 +401,22 @@ def generate_with_governor(
     max_new_tokens: int = 128,
     trace: list[dict] | None = None,
     generation_metadata: dict | None = None,
+    token_policy: str = "generation_frontier",
 ) -> str:
-    """Generate with a generation-frontier, relative-L2 multi-layer governor.
+    """Generate with an explicit relative-L2 multi-layer token policy.
 
     ``total_relative_l2`` is divided by the normalized profile weights. At each
     site and decode step the injected vector norm is therefore
     ``budget * weight * ||activation|| * gate``. This is an intervention budget,
     not a claim that nonlinear downstream state differences add linearly.
+    Both policies steer the final prompt token on the first step. Afterwards
+    ``generated_span`` steers all generated positions on every recomputation;
+    ``generation_frontier`` steers only the newest position. Prompt positions
+    are not repeatedly steered by the generated-span policy.
     """
 
+    if token_policy not in {"generation_frontier", "generated_span"}:
+        raise ValueError("unsupported governor token policy")
     if not sites:
         raise ValueError("governor requires at least one steering site")
     if not np.isfinite(total_relative_l2) or total_relative_l2 <= 0:
@@ -407,7 +449,9 @@ def generate_with_governor(
         hooks = [
             (
                 f"blocks.{site.layer}.hook_resid_pre",
-                _governor_intervention(site, position, total_relative_l2, trace),
+                (_governor_span_intervention(site, len(prefix), tokens.shape[1], total_relative_l2, trace)
+                 if token_policy == "generated_span" and generated else
+                 _governor_intervention(site, position, total_relative_l2, trace)),
             )
             for site in ordered
         ]

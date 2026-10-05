@@ -33,7 +33,7 @@ def diagnose(run: Path, decisions_path: Path | None = None) -> dict:
     """Return descriptive stop and review counts without modifying artifacts."""
 
     spec = json.loads((run / "validation_spec.json").read_text(encoding="utf-8"))
-    if spec.get("phase") != "validation_v3_post_review_length_diagnostic" or not spec.get("diagnostic_only"):
+    if spec.get("phase") not in {"validation_v3_post_review_length_diagnostic", "validation_v3_token_policy_diagnostic"} or not spec.get("diagnostic_only"):
         raise ValueError("run is not a post-review, diagnostic-only length run")
     if spec.get("validation_role") != "development":
         raise ValueError("length diagnostic must use development data")
@@ -77,6 +77,13 @@ def diagnose(run: Path, decisions_path: Path | None = None) -> dict:
         "max_new_tokens": limit,
         "by_generation": by_generation,
     }
+    result["phase"] = spec["phase"]
+    for generation_id, details in by_generation.items():
+        subset = [r for r in generations if r["generation_id"] == generation_id]
+        trace = [t for r in subset for t in r.get("intervention_trace", [])]
+        details["modified_site_positions"] = sum(t.get("modified_positions", 1) for t in trace)
+        details["injected_l2_sum"] = sum(t.get("injected_l2_sum", t.get("coefficient", 0)) for t in trace)
+        details["trace_note"] = "Sum of local injections across sites/steps, not a downstream norm bound."
     if decisions_path is None:
         return result
 
@@ -117,6 +124,7 @@ def diagnose(run: Path, decisions_path: Path | None = None) -> dict:
         "review_category_source": "rationale_text_keyword_diagnostic",
         "original_gate_descriptive_only": gate,
         "selected_generation_id_descriptive_only": None if selected is None else selected["generation_id"],
+        "summary_descriptive_only": summary,
     })
     return result
 

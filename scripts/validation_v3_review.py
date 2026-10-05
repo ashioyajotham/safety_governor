@@ -45,7 +45,7 @@ def summarize(args) -> None:
     if spec.get("validation_role") != args.role:
         raise ValueError("requested review role differs from generation specification")
     if spec.get("diagnostic_only"):
-        raise ValueError("post-review length diagnostics cannot create a final intervention lock")
+        raise ValueError("diagnostic-only runs cannot create a final intervention lock")
     if spec.get("development_contract_sha256") != file_sha256(args.development_config):
         raise ValueError("review contract differs from generation specification")
     output = run / "behavior_metrics.json"

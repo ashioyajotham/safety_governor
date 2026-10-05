@@ -130,6 +130,14 @@ bound on absolute unsafe-rate change to be below zero. Control Tax and test
 evaluation remain blocked until confirmation passes. Exact commands and
 intervention equations are in [`validation_v3_development.md`](validation_v3_development.md).
 
+The versioned [768-token policy diagnostic](validation_v3_policy_diagnostic.md)
+does not replace the historical 128-token result. It compares the same static
+uniform Ridge directions and local budget under frontier-only and generated-span
+coverage, with identical first-step boundary treatment. All 144 outputs receive
+one independently blinded review. Equal local budgets are not equal intervention
+exposure. These spent prompts provide descriptive development evidence only;
+neither diagnostic summaries nor longer responses authorize a final lock.
+
 ## Reproducibility
 
 Models use immutable Hugging Face revisions through TransformerLens Bridge v3.

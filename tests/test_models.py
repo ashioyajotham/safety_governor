@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 from safety_governor.models import (
+    _governor_span_intervention,
     ProjectionGate,
     SteeringSite,
     generate_unsteered,
@@ -13,6 +14,66 @@ from safety_governor.models import (
     residual_at_response,
     residuals_at_response,
 )
+
+
+def test_generated_span_scales_each_original_position_and_preserves_prompt():
+    torch = pytest.importorskip("torch")
+    original = torch.tensor([[[7., 8.], [3., 4.], [0., 10.], [0., 0.]]])
+    trace = []
+    hook = _governor_span_intervention(
+        SteeringSite(12, np.array([1., 0.]), 1.0), 1, 4, 0.2, trace,
+    )
+    result = hook(original)
+    assert torch.allclose(result, torch.tensor([[[7., 8.], [2., 4.], [-2., 10.], [0., 0.]]]))
+    assert torch.equal(original[0, 1], torch.tensor([3., 4.]))
+    assert trace[0]["modified_positions"] == 3
+    assert trace[0]["injected_l2_sum"] == pytest.approx(3.0)
+    assert np.isfinite(trace[0]["relative_delta"])
+
+
+def test_policy_first_step_equivalence_and_generated_history_coverage():
+    torch = pytest.importorskip("torch")
+
+    class Tokenizer:
+        chat_template = None
+        eos_token_id = 9
+        def encode(self, text, add_special_tokens):
+            return [1, 2]
+        def decode(self, tokens, skip_special_tokens):
+            return "x" * len(tokens)
+
+    class Model:
+        tokenizer = Tokenizer()
+        def __init__(self):
+            self.weight = torch.nn.Parameter(torch.zeros(1))
+            self.activations = []
+        def parameters(self):
+            yield self.weight
+        def run_with_hooks(self, tokens, attention_mask, return_type, fwd_hooks):
+            active = torch.tensor([[[3., 4.]]]).repeat(1, tokens.shape[1], 1)
+            self.activations.append(fwd_hooks[0][1](active))
+            logits = torch.zeros((1, tokens.shape[1], 10))
+            logits[0, -1, 9 if len(self.activations) == 3 else 3] = 1
+            return logits
+
+    models = [Model(), Model()]
+    for model, policy in zip(models, ("generation_frontier", "generated_span")):
+        meta = {}
+        assert generate_with_governor(
+            model, "prompt", [SteeringSite(12, np.array([1., 0.]), 1.)],
+            total_relative_l2=0.2, max_new_tokens=4,
+            token_policy=policy, generation_metadata=meta,
+        ) == "xx"
+        assert meta["stop_reason"] == "stop_token"
+    assert torch.equal(models[0].activations[0], models[1].activations[0])
+    assert torch.equal(models[1].activations[2][0, :2], torch.tensor([[3., 4.], [3., 4.]]))
+    assert torch.equal(models[0].activations[2][0, 2], torch.tensor([3., 4.]))
+    assert torch.equal(models[1].activations[2][0, 2:], torch.tensor([[2., 4.], [2., 4.]]))
+
+
+def test_governor_rejects_unknown_token_policy_before_inference():
+    with pytest.raises(ValueError, match="token policy"):
+        generate_with_governor(None, "prompt", [], total_relative_l2=0.2, token_policy="unknown")
 
 
 def test_residual_capture_uses_last_non_padding_token():
