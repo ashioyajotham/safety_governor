@@ -26,3 +26,6 @@ logs/
 *.log
 *.pt
 *.safetensors
+
+# Private mentor walkthrough; retain locally, never publish.
+/docs/mentor_codebase_walkthrough.md

@@ -3,6 +3,10 @@
 The split unit is ``source_group_id``, not ``pair_id``. This prevents related
 variants of the same underlying question/argument from leaking across
 train/validation/test.
+
+A source group clusters known variations of the same underlying question or
+argument. Assigning the entire group to one split reduces source-related leakage;
+it does not by itself establish generalization or eliminate topic confounds.
 """
 from __future__ import annotations
 

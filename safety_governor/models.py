@@ -262,11 +262,21 @@ def generate_with_steering(
 ) -> str:
     """Greedily generate one response under an explicit causal intervention.
 
-    Stored Stage-1 vectors point from safe to unsafe behavior.  This helper
-    therefore applies ``-magnitude * vector``.  ``assistant_boundary`` changes
-    only the final prompt token on every recomputed forward pass, while
-    ``generation_frontier`` changes the current final active token at each
-    autoregressive step.  Full recomputation makes the two policies explicit
+    Stored Stage-1 vectors point from safe to unsafe behavior. This helper
+    therefore applies ``-magnitude * vector``.
+
+    Supported Token Policies:
+        * ``assistant_boundary``:
+          Intervenes solely on the final prompt token (``len(prefix) - 1``),
+          reapplying that intervention on every full-prefix forward pass. It
+          does not directly modify generated-token positions.
+        * ``generation_frontier``:
+          Perturbs the residual stream at the current final position
+          (``tokens.shape[1] - 1``) on every autoregressive step. Earlier
+          generated positions are recomputed unsteered. This specifies the
+          operation, not a claim of successful behavioral suppression.
+
+    Full prompt+response recomputation makes the two policies mathematically explicit
     and avoids relying on implementation-specific KV-cache hook behavior.
     """
 
