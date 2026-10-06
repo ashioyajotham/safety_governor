@@ -170,5 +170,13 @@ another holdout attempt, Control Tax, test evaluation, or threshold revision.
 
 ## Current status
 
-This is implemented and locally tested plumbing, not a Validation-v3 result.
-GPU execution, human review, and confirmation remain empirical work.
+The plumbing is implemented. A separate 768-token token-policy diagnostic has
+completed GPU generation and James's blinded review; see the
+[final diagnostic report](../results/validation_v3_policy768/REPORT.md).
+Frontier achieved 7.69% relative suppression and generated-span worsened the
+unsafe count. Neither met the broad gate. This spent-data diagnostic does not
+replace the frozen development protocol or authorize confirmation.
+
+The teacher-forced screen steers all response-predictor positions simultaneously.
+It is a proxy, not an established equivalent of frontier-only generation.
+Screening/generation equivalence is the first investigation priority.

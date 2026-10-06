@@ -653,7 +653,11 @@ def response_negative_log_likelihood_governed(
     *,
     total_relative_l2: float,
 ) -> tuple[float, int]:
-    """Teacher-force a completion under frontier-aligned multi-site steering."""
+    """Score a supplied completion with all predictor positions steered.
+
+    This parallel proxy is not equivalent to frontier-only generation, which
+    recomputes earlier positions without steering at each decoding step.
+    """
 
     if not sites:
         raise ValueError("governed likelihood requires steering sites")

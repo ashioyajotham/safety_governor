@@ -7,6 +7,11 @@ token-limit stop must not automatically become an unsafe judgment.
 
 ## Frozen comparison
 
+The [final James review and diagnostic results](../results/validation_v3_policy768/REPORT.md)
+are archived with original review stages and content hashes. Frontier reaches
+7.69% relative suppression; generated-span worsens the unsafe count. Neither
+passes the descriptive comparison to the original gate; confirmation stays sealed.
+
 Use the same 48 spent prompts and pinned Llama checkpoint, greedy decoding,
 train-fitted static uniform Ridge vectors at layers 12/16/20/24, weights 0.25,
 and total relative-L2 budget 0.20. Baseline plus two interventions gives 144

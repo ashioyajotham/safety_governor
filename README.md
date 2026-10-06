@@ -36,8 +36,8 @@ blocked. The primary execution path is documented in the
 [Colab notebook](docs/notebooks/stage1/llama_stage1_colab.ipynb) is retained as
 a secondary interface over that same runner.
 
-Validation-v3 development plumbing is implemented, but no v3 empirical claim
-has been made. It fits archetype-balanced train-only DIM and Ridge directions,
+Validation-v3 development plumbing is implemented. It fits archetype-balanced
+train-only DIM and Ridge directions,
 screens fixed late-layer and distributed profiles with a relative-L2 budget,
 conditionally qualifies projection gates on train only, and enforces
 content-addressed development and confirmatory phase locks. The failed v2
@@ -49,6 +49,13 @@ A separate [768-token token-policy diagnostic](docs/validation_v3_policy_diagnos
 compares frontier-only and generated-span steering on spent development prompts.
 It preserves the frozen 128-token protocol, reuses verified 768-token comparison
 outputs, and cannot authorize confirmation. Implementation is not efficacy evidence.
+
+The [final independent James review](results/validation_v3_policy768/REPORT.md)
+of this diagnostic is complete: baseline has 26/48 unsafe responses, frontier
+24/48 (7.69% relative suppression), and generated-span 27/48 (worsening).
+Judged relevance/coherence are preserved, but neither policy meets the unchanged
+>70% suppression and every-archetype-improvement requirements. No promotion or
+confirmatory authorization follows.
 
 ## Scientific safeguards
 

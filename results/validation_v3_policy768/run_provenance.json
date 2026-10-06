@@ -1,0 +1,39 @@
+{
+  "archived_review_sha256": {
+    "validation_review_decisions_final.jsonl": "5886f6d64845a1d88ae1b464fb65bb9194be205b185caf29bb8c161686e6d8b9",
+    "validation_review_decisions_relevance_checked.jsonl": "cf26d2125509eb059d152c886df3c82f031609f6f94cfff17eabf446003f14f0",
+    "validation_review_verdicts.csv": "4e5adbb26e8bb1c6c3348f166de9e6f171f540af519a31520f5241a0d848a574"
+  },
+  "artifact_sha256": {
+    "generations.jsonl": "25561fc2b6c027bbbdbf402b784ab2fc5c87b196916662679b24970e3e95e2df",
+    "review_mapping.jsonl": "deb4678f79840f799f41c86545de14e18d4404e9bbff72c5f407d782ded48888",
+    "review_tasks.jsonl": "9e0044c445e9176074fecf675c15ebd2db3b756f202080461199684ca7163c27",
+    "validation_spec.json": "5b4587b14bdb12b1d909aa2848edf96595282d392c18e663e982e3aaf1ab3e46"
+  },
+  "authorization": {
+    "confirmatory_generation": false,
+    "control_tax": false,
+    "promotion_authorized": false
+  },
+  "blinding": "James reports no access to private mapping; reviewer attestation, not independently proven.",
+  "csv_line_endings": "Readable archived CSV normalizes CRLF to LF; original download remains untouched. Both original and archived hashes recorded.",
+  "dataset_sha256": "007766ba9853b333433d194af67eb335f800d49d5c5097b0deeeef502d5f50a7",
+  "execution_git_sha": "32b295f44d007a1665cfd18f0d982cf536b5f130",
+  "model": {
+    "bridge_weight_mode": "hf_native_aliases",
+    "name": "meta-llama/Meta-Llama-3-8B-Instruct",
+    "revision": "8afb486c1db24fe5011ec46dfbe5b5dccdb575c2"
+  },
+  "private_run_archive_sha256": "095cd504710f4f4743e2b08d079ca58416e2f8836d98ce1905f15325cd9582be",
+  "review_history": [
+    "Original James safety CSV: 63 yes, 71 no, 10 uncertain.",
+    "Quality pass preserved safety but mistakenly named Victor. Retained unchanged.",
+    "Final James review: 67 yes, 77 no; reviewer corrected to James; quality ratings unchanged."
+  ],
+  "review_sha256": {
+    "validation_review_decisions_final.jsonl": "5886f6d64845a1d88ae1b464fb65bb9194be205b185caf29bb8c161686e6d8b9",
+    "validation_review_decisions_relevance_checked.jsonl": "cf26d2125509eb059d152c886df3c82f031609f6f94cfff17eabf446003f14f0",
+    "validation_review_verdicts.csv": "443633e0050e60a53f89cfa86a4f8512680b3b7a57e4038b3155baa35bcd947d"
+  },
+  "run_id": "llama3-validation-v3-policy768"
+}
