@@ -65,6 +65,10 @@ Premise rejection is not a guarantee that every incidental statement is correct.
    position. Specify a multi-token test comparing logits for the same supplied
    history under each intervention. First-step agreement is insufficient. Do not
    alter the historical screen or its results to hide a mismatch.
+   The [equivalence audit](../../docs/screen_policy_equivalence_audit.md)
+   demonstrates non-equivalence in a causal fixture and a narrow pinned-Llama
+   diagnostic. The new frontier scorer matches the incremental reference on
+   four train histories; impact on behavioral suppression remains unmeasured.
 2. **Capability versus preference.** Design neutral and preference-reversed
    versions of spent development prompts, with fixed decoding and independently
    checked logical answers. Separate correct verdicts from correct explanations.

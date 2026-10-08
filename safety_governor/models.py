@@ -645,6 +645,70 @@ def response_negative_log_likelihood(
     return float(loss.detach().cpu()), len(response)
 
 
+def response_negative_log_likelihood_frontier(
+    model,
+    instruction: str,
+    completion: str,
+    sites: list[SteeringSite] | None = None,
+    *,
+    total_relative_l2: float = 0.0,
+) -> tuple[float, int]:
+    """Score supplied tokens with the exact recomputed generation-frontier policy.
+
+    Predictor i sees only the serialized prompt and supplied tokens before i.
+    Only its last position is steered, using the same hook as generation; no
+    intervened historical states or KV cache are reused. This is teacher-forced
+    likelihood, not free-running generation or a behavioral efficacy metric.
+
+    Empty sites and zero budget give a policy-matched incremental baseline.
+    Zero budget with valid sites is also an unsteered control. The caller must
+    put the model in evaluation mode, as with the generation path. Cross entropy
+    is accumulated from float32 logits under inference mode.
+    """
+    sites = list(sites or [])
+    if not np.isfinite(total_relative_l2) or total_relative_l2 < 0:
+        raise ValueError("frontier relative-L2 budget must be finite and non-negative")
+    if total_relative_l2 > 0 and not sites:
+        raise ValueError("positive frontier budget requires steering sites")
+    if len({site.layer for site in sites}) != len(sites):
+        raise ValueError("frontier steering layers must be unique")
+    if sites and not np.isclose(sum(site.profile_weight for site in sites), 1.0, atol=1e-8):
+        raise ValueError("frontier profile weights must sum to one")
+    import torch
+    import torch.nn.functional as functional
+
+    prefix = _prefix_ids(model.tokenizer, instruction)
+    response = list(model.tokenizer.encode(completion, add_special_tokens=False))
+    if not prefix:
+        raise ValueError("instruction produced an empty generation prefix")
+    if not response:
+        raise ValueError("completion tokenized to an empty response")
+    try:
+        device = next(model.parameters()).device
+    except (AttributeError, StopIteration):
+        device = torch.device("cpu")
+    tokens = torch.tensor([prefix + response], dtype=torch.long, device=device)
+    ordered = sorted(sites, key=lambda site: site.layer)
+    loss_sum = 0.0
+    with torch.inference_mode():
+        for index in range(len(response)):
+            history = tokens[:, :len(prefix) + index]
+            hooks = [
+                (f"blocks.{site.layer}.hook_resid_pre",
+                 _governor_intervention(site, history.shape[1] - 1, total_relative_l2, None))
+                for site in ordered
+            ] if total_relative_l2 > 0 else []
+            logits = model.run_with_hooks(
+                history, attention_mask=torch.ones_like(history, dtype=torch.bool),
+                return_type="logits", fwd_hooks=hooks,
+            )
+            loss = functional.cross_entropy(
+                logits[:, -1, :].float(), tokens[:, len(prefix) + index], reduction="sum",
+            )
+            loss_sum += float(loss.cpu())
+    return loss_sum, len(response)
+
+
 def response_negative_log_likelihood_governed(
     model,
     instruction: str,

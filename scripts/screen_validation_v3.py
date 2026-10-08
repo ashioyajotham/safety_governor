@@ -16,6 +16,7 @@ from safety_governor.models import (
     load_transformerlens_model,
     response_negative_log_likelihood,
     response_negative_log_likelihood_governed,
+    response_negative_log_likelihood_frontier,
 )
 from safety_governor.preflight import runtime_profile_errors
 from safety_governor.reproducibility import environment_facts
@@ -98,6 +99,20 @@ def _summarize(rows: list[dict], candidates: list[dict]) -> dict:
     }
 
 
+def _lock_screen_spec(run: Path, spec: dict, resume: bool) -> None:
+    """Reject policy/provenance changes before loading weights or reusing shards."""
+    spec_path = run / "run_spec.json"
+    if spec_path.exists():
+        if json.loads(spec_path.read_text()) != spec:
+            raise ValueError("existing v3 screen specification differs")
+        if not resume:
+            raise FileExistsError("v3 screen exists; pass --resume")
+    else:
+        if any(run.iterdir()):
+            raise FileExistsError("non-empty v3 screen directory has no specification")
+        atomic_write_json(spec_path, spec)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("config")
@@ -108,6 +123,11 @@ def main() -> None:
     parser.add_argument("--run-id", required=True)
     parser.add_argument("--artifact-root", type=Path, default=None)
     parser.add_argument("--resume", action="store_true")
+    parser.add_argument(
+        "--scoring-policy", choices=("parallel_proxy", "frontier_exact"),
+        default="parallel_proxy",
+        help="Historical parallel proxy by default; frontier_exact requires a distinct run ID.",
+    )
     args = parser.parse_args()
 
     main_config = load(args.config)
@@ -154,16 +174,17 @@ def main() -> None:
         "candidates": candidates,
         "git_sha": facts["git_sha"],
     }
-    spec_path = run / "run_spec.json"
-    if spec_path.exists():
-        if json.loads(spec_path.read_text()) != spec:
-            raise ValueError("existing v3 screen specification differs")
-        if not args.resume:
-            raise FileExistsError("v3 screen exists; pass --resume")
-    else:
-        if any(run.iterdir()):
-            raise FileExistsError("non-empty v3 screen directory has no specification")
-        atomic_write_json(spec_path, spec)
+    # Leave historical specifications byte-compatible. Exact runs explicitly
+    # lock their policy and cannot resume parallel shards (or vice versa).
+    if args.scoring_policy == "frontier_exact":
+        spec.update(
+            schema_version=2,
+            phase="validation_v3_train_only_frontier_exact_screen",
+            scoring_policy="frontier_exact",
+            baseline_policy="incremental_unsteered",
+            loss_logits_dtype="float32",
+        )
+    _lock_screen_spec(run, spec, args.resume)
 
     os.environ.setdefault("HF_HOME", profile["hf_cache_root"])
     model = load_transformerlens_model(
@@ -173,6 +194,8 @@ def main() -> None:
         profile["dtype"],
         main_config["model"]["bridge_weight_mode"],
     )
+    if args.scoring_policy == "frontier_exact":
+        model.eval()
     conditions = [{"candidate_id": "baseline"}] + candidates
     for candidate in conditions:
         candidate_id = candidate["candidate_id"]
@@ -188,7 +211,18 @@ def main() -> None:
             # Teacher-forced scoring never trains the model. Retaining autograd
             # graphs across full responses can exhaust a 40 GB A100.
             with torch.inference_mode():
-                if candidate_id == "baseline":
+                if args.scoring_policy == "frontier_exact":
+                    kwargs = {} if candidate_id == "baseline" else {
+                        "sites": sites,
+                        "total_relative_l2": float(candidate["total_relative_l2"]),
+                    }
+                    safe_nll, safe_tokens = response_negative_log_likelihood_frontier(
+                        model, safe.instruction, safe.completion, **kwargs,
+                    )
+                    unsafe_nll, unsafe_tokens = response_negative_log_likelihood_frontier(
+                        model, unsafe.instruction, unsafe.completion, **kwargs,
+                    )
+                elif candidate_id == "baseline":
                     safe_nll, safe_tokens = response_negative_log_likelihood(
                         model, safe.instruction, safe.completion
                     )
@@ -205,6 +239,8 @@ def main() -> None:
                         total_relative_l2=float(candidate["total_relative_l2"]),
                     )
             atomic_write_json(shard, {
+                **({"scoring_policy": "frontier_exact"}
+                   if args.scoring_policy == "frontier_exact" else {}),
                 "candidate_id": candidate_id,
                 "pair_id": safe.pair_id,
                 "source_group_id": safe.source_group_id,
@@ -222,9 +258,13 @@ def main() -> None:
     if len(rows) != expected:
         raise ValueError(f"incomplete v3 screen: expected {expected} shards; found {len(rows)}")
     summary = _summarize(rows, candidates)
+    if args.scoring_policy == "frontier_exact":
+        summary.update(schema_version=2, phase=spec["phase"], scoring_policy="frontier_exact")
     atomic_write_json(run / "screen_metrics.json", summary)
     atomic_write_json(run / "status.json", {
-        "state": "validation_v3_train_only_screen_complete",
+        "state": ("validation_v3_train_only_frontier_exact_screen_complete"
+                  if args.scoring_policy == "frontier_exact"
+                  else "validation_v3_train_only_screen_complete"),
         "pairs": len(pairs),
         "conditions": len(conditions),
         "confirmatory_accessed": False,
