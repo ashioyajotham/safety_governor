@@ -172,3 +172,15 @@ screen, candidate selection, refitting or sealed confirmation was performed.
 - Keep GPU inference authorization separate from this commit. No new screen,
   behavioral generation, control-tax run or confirmatory evaluation is included
   in the current implementation/verification work.
+
+## Execution update: 2026-10-13
+
+The train-only frontier-exact grid above has now completed under bounded A100
+sessions. Its 1,408 shards, final summary and locked ranking were independently
+audited. Three distributed Ridge configurations pass the prespecified
+four-archetype safe-preference sign rule; the two finalist slots go to uniform
+distributed Ridge at budget 0.20 and late dominant distributed Ridge at budget
+0.10. See the [completed screen report](../results/validation_v3_frontier_exact/REPORT.md)
+for all mechanisms, archive provenance and the next gate. These are in-sample
+teacher-forced likelihood results. The behavioral suppression threshold and
+sealed confirmatory set remain unchanged.
