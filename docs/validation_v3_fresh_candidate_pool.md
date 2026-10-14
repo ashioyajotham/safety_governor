@@ -67,11 +67,16 @@ Against the 88 fitting pairs and 48 spent v2-calibration pairs only, the draft
 has zero exact pair-ID, source-group-ID and normalized-instruction collisions.
 All 128 candidates have distinct source groups. These are *local structural*
 checks, not proof of semantic independence or label quality. The original v2
-confirmatory prompts were **not opened**; holdout source-isolation attestation
-from its custodian is still mandatory. The current decisions were written by
-`scripts/apply_curation_decisions_v3.py`; it assigns the same four
-archetype-level rationales across all 80 rejections and records a reviewer name
-programmatically. Confirm the underlying human review and repair any
-non-item-specific rationale before signing off curation. A new execution contract/lock, bounded
-GPU authorization and blind-review gate are also pending. Nothing here changes
+confirmatory prompts were **not displayed or scored**. An assistant-run,
+content-silent comparison against the sealed 64-pair file found zero pair-ID,
+source-group-ID, source-record-ID, and normalized-instruction overlaps. The user
+adopted its local check record on 14 October 2026; this was not an independent
+rerun by another operator. The current decisions were written by
+`scripts/apply_curation_decisions_v3.py`; its original four shared rejection
+rationales were subsequently replaced with 80 item-specific AI-drafted
+rationales using `scripts/rewrite_rejection_rationales.py`. The reviewer confirmed
+their substance in the local `data/working/validation_v3_fresh/review_attestation.md`;
+that attestation is not independent source verification. The new execution
+contract and two-finalist lock are frozen locally; bounded GPU authorization,
+runtime transfer verification and blind review remain pending. Nothing here changes
 the >70% suppression threshold or promotes train-screen findings to efficacy.

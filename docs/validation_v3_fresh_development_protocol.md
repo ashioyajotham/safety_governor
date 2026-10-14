@@ -1,12 +1,20 @@
 # Validation v3: prospective fresh behavioural development
 
-Status: **preparation, not frozen or authorized for GPU generation** (14 October
+Status: **corpus and execution contract frozen locally; not authorized for GPU generation** (14 October
 2026). This document fixes the intended comparison and stop rules. A 48-pair
 corpus has been materialized at `datasets/validation_v3/fresh_development.jsonl`
 with SHA-256 `ee3a68d473408e4e5947d54af5cdf901dabd049211c9e3968bb1188a143fcd07`.
-The local audit passes, but independent human-review provenance and sealed-holdout
-source-isolation attestation remain unresolved. A separate execution contract
-and candidate lock are also missing. The historical `validation_v3_development.yaml`
+The local audit passes. The reviewer recorded curation provenance locally, and
+the user adopted a content-silent holdout-isolation check with zero overlaps on
+all four reported axes; this was assistant-executed, not independently rerun by
+another operator. The adopted check record is local at
+`data/working/validation_v3_fresh/holdout_isolation_check.json`. The new
+execution contract is `configs/validation_v3_fresh_development.yaml` (SHA-256
+`78eeb7f787da82db8d077e1229f403fb01aad9a49cd15a7bd849dd81e4581dc0`),
+and the candidate lock is `configs/validation_v3_fresh_candidate_lock.json`
+(file SHA-256 `a1c815b83133b01153212608dd77e21fa670005eacbf2c300bb5e361ee301957`,
+embedded lock SHA-256 `3d9de45eb515ab0907197ecd87f39f61e7a8a4dbb0bde0da556c44d42c3976e6`).
+The historical `validation_v3_development.yaml`
 points to the spent Validation-v2 calibration set and must remain unchanged for
 reproduction. See the [candidate-pool record](validation_v3_fresh_candidate_pool.md)
 for source provenance and curation caveats.
@@ -42,7 +50,7 @@ do not overlap the 88 fitting pairs or the spent 48-pair calibration set. Run th
 read-only local audit from the repository root:
 
 ```bash
-python -m scripts.audit_validation_v3_fresh_dataset \
+.venv/bin/python -m scripts.audit_validation_v3_fresh_dataset \
   --candidate datasets/validation_v3/fresh_development.jsonl \
   --expected-sha256 <sha256-of-reviewed-file>
 ```
@@ -55,6 +63,28 @@ If that certification is unavailable, the corpus is not ready. Do not fill a
 quota by selecting for baseline errors or removing difficult archetypes after
 seeing generations. An archetype with no baseline unsafe headroom fails the
 development gate rather than triggering replacement prompts.
+
+The split custodian can run the content-silent comparison below in an environment
+where the sealed file is already available. It reads holdout rows in memory, but
+does not print examples or score/generate them. Record its complete JSON result
+as a separate custodian attestation; the local audit above remains fail-closed and
+does not itself change `ready_for_generation`.
+
+```bash
+.venv/bin/python -m scripts.attest_validation_v3_holdout_isolation \
+  --candidate datasets/validation_v3/fresh_development.jsonl \
+  --holdout datasets/validation_v2/confirmatory.jsonl \
+  --expected-candidate-sha256 ee3a68d473408e4e5947d54af5cdf901dabd049211c9e3968bb1188a143fcd07 \
+  --expected-holdout-sha256 3d3e7773fda4b5dd788dee7998265583387d7674f25ee7527f3738dd8881a93a
+```
+
+The comparison checks pair ID, source-group ID, source-record ID (even across
+source revisions), and casefolded, punctuation-normalized instruction. The
+last axis detects surface-form collisions, not semantic paraphrases. A result
+with `isolated: false`, a hash mismatch, or a schema error blocks the freeze;
+do not print the colliding holdout values to investigate in the development
+workspace. The custodian should record their identity, date, both file hashes,
+and the tool result without disclosing the sealed examples.
 
 ## Locked comparison and generation
 
@@ -73,11 +103,14 @@ score that run as a clean behavioural gate, silently drop rows or extend only
 the favourable condition. A revised cap would require a newly documented,
 whole-matrix prospective run. Keep the original run as a diagnostic.
 
-Freeze the new contract, dataset hash, candidate definitions and candidate lock
-*before* GPU generation. The lock must select these two finalists from the
-completed screen without reranking on development behaviour. Verify vector
-hashes, clean code revision, runtime profile and a bounded GPU-cost/shutdown
-plan. The historical screen and spent-data diagnostics remain immutable.
+The new contract, dataset hash, candidate definitions and candidate lock are
+frozen locally before GPU generation. `scripts.freeze_validation_v3_fresh`
+checked the exact completed screen grid and ranked finalists, historical
+train/screen/direction manifests, approved corpus and adopted isolation record;
+the runtime now verifies the dataset and four Ridge vector hashes before model
+load. The pending launch gate still requires a clean code revision, runtime
+profile, bounded GPU-cost/shutdown plan, transfer verification, and explicit
+run authorization. The historical screen and spent-data diagnostics remain immutable.
 
 ## Blind review and decision rule
 
@@ -104,8 +137,8 @@ run; it would not itself establish efficacy or authorize Control Tax.
 
 - [x] Completed screen independently audited; two finalist IDs fixed.
 - [x] Prior 768-token diagnostic supports the cap choice on spent prompts.
-- [ ] Fresh 48-pair corpus approved, source-isolated and content-hashed.
-- [ ] Holdout isolation certified without opening sealed prompts.
-- [ ] New execution contract and lock created and checked against screen grid.
+- [x] Fresh 48-pair corpus approved, source-isolated by identifier checks, and content-hashed.
+- [x] Holdout isolation check passed and was adopted by the user; no sealed prompts were displayed.
+- [x] New 768-token execution contract and two-finalist lock created and checked against screen grid.
 - [ ] Cost limit, timeout and automatic GPU shutdown armed.
 - [ ] Only then: generate, inspect stop reasons and export blind review tasks.

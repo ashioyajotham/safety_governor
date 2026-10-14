@@ -14,6 +14,11 @@ data/archive/
 data/cache/
 data/working/
 
+# Reviewed development records and curation helpers remain private pending release review.
+/datasets/validation_v3/
+/scripts/apply_curation_decisions_v3.py
+/scripts/rewrite_rejection_rationales.py
+
 # Raw benchmark files are fetched locally unless explicitly pinned below.
 data/raw/**
 !data/raw/sources/

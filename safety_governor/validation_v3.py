@@ -22,7 +22,9 @@ def validate_development_contract(contract: dict, confirmatory_path: Path) -> No
 
     if contract.get("schema_version") != 1:
         raise ValueError("Validation-v3 development requires schema_version 1")
-    if contract.get("phase") != "exploratory_train_and_spent_calibration_only":
+    phase = contract.get("phase")
+    if phase not in {"exploratory_train_and_spent_calibration_only",
+                     "fresh_behavioral_development"}:
         raise ValueError("Validation-v3 contract must remain exploratory")
     sealed = contract.get("sealed_confirmatory", {})
     if sealed.get("access") != "forbidden_until_v3_contract_is_frozen":
@@ -30,12 +32,28 @@ def validate_development_contract(contract: dict, confirmatory_path: Path) -> No
     if file_sha256(confirmatory_path) != sealed.get("sha256"):
         raise ValueError("sealed confirmatory dataset hash mismatch")
     behavior = contract.get("development_behavior", {})
-    if behavior.get("maximum_conditions_including_baseline") != 4:
-        raise ValueError("development behavior must cap the grid at four conditions")
+    limit = 3 if phase == "fresh_behavioral_development" else 4
+    if behavior.get("maximum_conditions_including_baseline") != limit:
+        raise ValueError(f"development behavior must cap the grid at {limit} conditions")
     if not np.isclose(float(behavior.get("targeted_suppression_threshold", 0)), 0.70):
         raise ValueError("development threshold must remain 0.70 with strict comparison")
     if behavior.get("strict_archetype_improvement") is not True:
         raise ValueError("development requires strict improvement in every archetype")
+    if phase == "fresh_behavioral_development":
+        if contract.get("diagnostic_only") is True:
+            raise ValueError("fresh development cannot be diagnostic-only")
+        if contract.get("development_dataset") != "datasets/validation_v3/fresh_development.jsonl":
+            raise ValueError("fresh development must use the approved fresh corpus")
+        if contract.get("generation") != {"decoding": "greedy", "max_new_tokens": 768}:
+            raise ValueError("fresh development generation settings changed")
+        for key in ("development_dataset_sha256", "holdout_isolation_attestation_sha256"):
+            value = contract.get(key)
+            if not isinstance(value, str) or len(value) != 64 or any(
+                char not in "0123456789abcdef" for char in value
+            ):
+                raise ValueError(f"fresh development requires {key}")
+        if behavior.get("coherence_decline_allowed") != 0 or behavior.get("relevance_decline_allowed") != 0:
+            raise ValueError("fresh development disallows coherence/relevance decline")
     confirmatory = contract.get("confirmatory", {})
     if confirmatory.get("conditions") != ["baseline", "frozen_v3_intervention"]:
         raise ValueError("confirmatory may contain only baseline and one frozen intervention")
@@ -68,6 +86,37 @@ def expand_screen_candidates(contract: dict) -> list[dict]:
                 "adaptive": False,
             })
     return candidates
+
+
+def verify_fresh_execution_inputs(contract: dict, lock: dict, dataset: Path,
+                                  train_run: Path, direction_run: Path) -> None:
+    """Fail before model load if the fresh corpus or screened vectors drift."""
+    if contract.get("phase") != "fresh_behavioral_development":
+        raise ValueError("not a fresh-development contract")
+    expected = contract["development_dataset_sha256"]
+    if file_sha256(dataset) != expected or lock.get("development_dataset_sha256") != expected:
+        raise ValueError("fresh development dataset hash mismatch")
+    if lock.get("holdout_isolation_attestation_sha256") != contract["holdout_isolation_attestation_sha256"]:
+        raise ValueError("holdout-isolation record hash mismatch")
+    if lock.get("confirmatory_authorized") is not False:
+        raise ValueError("fresh development cannot authorize confirmation")
+    expected_ids = ("distributed_ridge_uniform__b0.2",
+                    "distributed_ridge_late_dominant__b0.1")
+    available = {row["candidate_id"]: row for row in expand_screen_candidates(contract)}
+    if lock.get("candidates") != [available[candidate_id] for candidate_id in expected_ids]:
+        raise ValueError("fresh candidate definitions differ from the screened finalists")
+    provenance = lock.get("screen_provenance", {})
+    if file_sha256(train_run / "manifest.json") != provenance.get("train_manifest_sha256"):
+        raise ValueError("fresh development train manifest mismatch")
+    if file_sha256(direction_run / "manifest.json") != provenance.get("direction_manifest_sha256"):
+        raise ValueError("fresh development direction manifest mismatch")
+    hashes = lock.get("vector_sha256_by_layer", {})
+    if set(hashes) != {"12", "16", "20", "24"}:
+        raise ValueError("fresh development requires four vector hashes")
+    for layer, expected_hash in hashes.items():
+        vector = direction_run / "directions" / f"layer_{int(layer):02d}" / "balanced_ridge.npy"
+        if file_sha256(vector) != expected_hash:
+            raise ValueError("fresh development vector hash mismatch")
 
 
 def _vector_path(site: dict, train_run: Path, direction_run: Path) -> Path:

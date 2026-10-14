@@ -1,0 +1,93 @@
+{
+  "candidates": [
+    {
+      "adaptive": false,
+      "candidate_id": "distributed_ridge_uniform__b0.2",
+      "profile_id": "distributed_ridge_uniform",
+      "sites": [
+        {
+          "layer": 12,
+          "method": "balanced_ridge",
+          "source": "v3_direction_fit",
+          "weight": 0.25
+        },
+        {
+          "layer": 16,
+          "method": "balanced_ridge",
+          "source": "v3_direction_fit",
+          "weight": 0.25
+        },
+        {
+          "layer": 20,
+          "method": "balanced_ridge",
+          "source": "v3_direction_fit",
+          "weight": 0.25
+        },
+        {
+          "layer": 24,
+          "method": "balanced_ridge",
+          "source": "v3_direction_fit",
+          "weight": 0.25
+        }
+      ],
+      "token_mode": "generation_frontier",
+      "total_relative_l2": 0.2
+    },
+    {
+      "adaptive": false,
+      "candidate_id": "distributed_ridge_late_dominant__b0.1",
+      "profile_id": "distributed_ridge_late_dominant",
+      "sites": [
+        {
+          "layer": 12,
+          "method": "balanced_ridge",
+          "source": "v3_direction_fit",
+          "weight": 0.1
+        },
+        {
+          "layer": 16,
+          "method": "balanced_ridge",
+          "source": "v3_direction_fit",
+          "weight": 0.2
+        },
+        {
+          "layer": 20,
+          "method": "balanced_ridge",
+          "source": "v3_direction_fit",
+          "weight": 0.3
+        },
+        {
+          "layer": 24,
+          "method": "balanced_ridge",
+          "source": "v3_direction_fit",
+          "weight": 0.4
+        }
+      ],
+      "token_mode": "generation_frontier",
+      "total_relative_l2": 0.1
+    }
+  ],
+  "confirmatory_authorized": false,
+  "development_contract_sha256": "78eeb7f787da82db8d077e1229f403fb01aad9a49cd15a7bd849dd81e4581dc0",
+  "development_dataset_sha256": "ee3a68d473408e4e5947d54af5cdf901dabd049211c9e3968bb1188a143fcd07",
+  "holdout_isolation_attestation_sha256": "0175554d0d8c41d05878d681407a01b74451f9e8529981c44e7347c2dcd19942",
+  "lock_sha256": "3d9de45eb515ab0907197ecd87f39f61e7a8a4dbb0bde0da556c44d42c3976e6",
+  "lock_type": "validation_v3_development_candidate",
+  "schema_version": 1,
+  "screen_provenance": {
+    "archive_sha256": "9f78ac9201b28c31c2bc6fcb42a35c84fa658336279d9d44a6781742a6da5bb8",
+    "direction_manifest_sha256": "f560c8ef0da79985aa818120100d4149e81687850b73e5e4dd9682b1c862ac06",
+    "historical_contract_sha256": "69d373270148427b5f994efc970cc89c0190901312b0412b6b23be0084f2cd88",
+    "run_id": "llama3-v3-frontier-exact-screen-930164d",
+    "run_spec_sha256": "7dc7f4eb7054d9a48115adb12494d164f2f002c488c1f9398cd4b75b1c04a6a9",
+    "screen_metrics_sha256": "5408aaef8a5ca13bacf8e3edb4615c641cb04b2bb615ce7fe4cac8f848229bff",
+    "train_manifest_sha256": "347ec3d8be61f57c81fedf9891504f4693629c75e6c0d4cba19cc68379cd7219"
+  },
+  "selection_rule": "fixed_top_two_eligible_train_only_screen_no_development_reranking",
+  "vector_sha256_by_layer": {
+    "12": "ee0be56a17ceb5ea6e0661f0bf64426d367f7529fb4393f7192610cacbb66f88",
+    "16": "5088e7ca9484b147338930ae93a838c79a2c4ca44774b2df3e0f9f8ed321818d",
+    "20": "d21972d994742487ecdb08f140f8740d68dcef652d5ef9607e90641bcb0de177",
+    "24": "9cc817c5ee5e5845d9d6cc0768e3056df9e264c2f8e9dce404439bc8674b5390"
+  }
+}

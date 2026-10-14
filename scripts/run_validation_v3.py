@@ -23,6 +23,7 @@ from safety_governor.validation_v3 import (
     file_sha256,
     load_candidate_sites,
     validate_development_contract,
+    verify_fresh_execution_inputs,
     verify_content_lock,
 )
 
@@ -86,6 +87,9 @@ def main() -> None:
             raise ValueError("development candidate lock has invalid authority")
         candidates = lock["candidates"]
         dataset_path = Path(contract["development_dataset"])
+        if contract.get("phase") == "fresh_behavioral_development":
+            verify_fresh_execution_inputs(contract, lock, dataset_path,
+                                          args.train_run, args.direction_run)
     else:
         if lock.get("confirmatory_authorized") is not True:
             raise ValueError("final lock does not authorize confirmatory access")
