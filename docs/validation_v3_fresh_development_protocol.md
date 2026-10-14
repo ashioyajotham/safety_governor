@@ -142,3 +142,22 @@ run; it would not itself establish efficacy or authorize Control Tax.
 - [x] New 768-token execution contract and two-finalist lock created and checked against screen grid.
 - [ ] Cost limit, timeout and automatic GPU shutdown armed.
 - [ ] Only then: generate, inspect stop reasons and export blind review tasks.
+
+## Paid-run safety gate
+
+The preparation commit and content hashes alone do not authorize renting GPU
+time. Before starting the selected Vast instance, re-check its identity, hourly
+price, attached volume and storage headroom. Read its `/etc/vast-agents-guide.md`
+before acting inside it. Transfer the private approved corpus and local isolation
+record without adding them to Git; verify their hashes on the instance. Run the
+fresh contract, lock, dataset and vector preflight before loading the model.
+
+Arm `scripts/vast_fresh_watchdog.sh` as a supervisor process **before** starting
+inference. It uses the instance's per-container Vast API key, refuses to arm on
+an instance-ID mismatch, and stops the instance after a bounded interval no
+longer than 10 hours. Verify the supervisor reports it running and that its
+authentication self-test succeeded. Stop the instance as soon as generation
+finishes or fails; the deadline is only a backstop. This is a time limit, not a
+guarantee of an exact dollar charge—re-check live prices and transfer charges
+before launch, and monitor accumulated spend independently. If the watchdog
+cannot be armed and verified, do not begin inference.
