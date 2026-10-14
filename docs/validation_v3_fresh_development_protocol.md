@@ -151,6 +151,19 @@ price, attached volume and storage headroom. Read its `/etc/vast-agents-guide.md
 before acting inside it. Transfer the private approved corpus and local isolation
 record without adding them to Git; verify their hashes on the instance. Run the
 fresh contract, lock, dataset and vector preflight before loading the model.
+From the repository root, after copying the two private files and confirming
+the historical train/direction runs are present, run:
+
+```bash
+/data/safety_governor/venv/bin/python -m scripts.preflight_validation_v3_fresh \
+  --train-run /data/safety_governor/artifacts/llama3-stage1-response-mean-hf-native \
+  --direction-run /data/safety_governor/artifacts/llama3-validation-v3-directions \
+  --expected-git-sha <approved-clean-commit> --check-gpu
+```
+
+The command hashes the corpus and isolation record, checks the historical
+manifests and four Ridge vectors, requires the expected clean revision, and
+tests BF16 CUDA availability without loading Llama or generating responses.
 
 Arm `scripts/vast_fresh_watchdog.sh` as a supervisor process **before** starting
 inference. It uses the instance's per-container Vast API key, refuses to arm on
