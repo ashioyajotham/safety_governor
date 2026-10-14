@@ -14,7 +14,7 @@ development contract were retained.
 - Frozen policy: schema 2 `frontier_exact`, with an incremental unsteered
   baseline. Five profiles were tested at relative L2 budgets 0.05, 0.10 and
   0.20. Each archetype has 22 train pairs.
-- Full private archive: `~/Downloads/frontier-screen-930164d-older-resume-20261013.tar.gz`,
+- Full private archive: `artifacts/local_downloads_20261014/frontier-screen-930164d-older-resume-20261013.tar.gz`,
   SHA-256 `9f78ac9201b28c31c2bc6fcb42a35c84fa658336279d9d44a6781742a6da5bb8`.
   The earlier 1,356 shards are byte-identical to those in this archive.
 - The archive's `run_spec.json` SHA-256 is

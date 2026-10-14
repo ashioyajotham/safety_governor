@@ -85,8 +85,9 @@ contribution to behavioral failure, statistical generalization, or causality.
 The audit recorded 23.01 seconds from harness startup through scoring (not the
 full billed session). All ten original DIM/Ridge vector files were downloaded
 and checked against their metadata hashes. The audit artifact is retained at
-`~/Downloads/llama3-screen-logit-audit-20261008/audit.json`; the direction backup
-is `~/Downloads/llama3-validation-v3-directions-recovered-20261008/`.
+`artifacts/local_downloads_20261014/llama3-screen-logit-audit-20261008/audit.json`;
+the direction backup is
+`artifacts/local_downloads_20261014/llama3-validation-v3-directions-recovered-20261008/`.
 The instance was confirmed `actual_status=exited`, `cur_state=stopped` after
 retrieval. Historical screening artifacts and the sealed holdout were unchanged.
 
@@ -141,8 +142,8 @@ CUDA. It missed tolerance on three examples, with errors up to 0.000465.
 That evidence is preserved; the corrected audit uses float32 CUDA loss in both
 paths, without changing the scorer or relaxing tolerance.
 
-Evidence: `~/Downloads/llama3-frontier-scorer-verification-20261008.json`
-and `~/Downloads/llama3-frontier-scorer-verification-20261008-cuda-loss.json`.
+Evidence: `artifacts/local_downloads_20261014/llama3-frontier-scorer-verification-20261008.json`
+and `artifacts/local_downloads_20261014/llama3-frontier-scorer-verification-20261008-cuda-loss.json`.
 This verifies the implementation against the incremental reference for these
 histories, not behavioral efficacy or all possible configurations. No full
 screen, candidate selection, refitting or sealed confirmation was performed.

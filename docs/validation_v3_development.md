@@ -1,5 +1,9 @@
 # Validation v3: distributed and adaptive governor development
 
+This document preserves the original exploratory protocol and commands for the
+already-spent calibration set. It is **not** the execution contract for the next
+fresh behavioural run; see the [prospective fresh-development protocol](validation_v3_fresh_development_protocol.md).
+
 Validation v3 is a preregistered mechanism-development funnel prompted by the
 negative Validation-v2 result. Validation v2 found 7.69% relative suppression
 for its best condition, far below the required strictly greater than 70% gate.
@@ -170,13 +174,15 @@ another holdout attempt, Control Tax, test evaluation, or threshold revision.
 
 ## Current status
 
-The plumbing is implemented. A separate 768-token token-policy diagnostic has
-completed GPU generation and James's blinded review; see the
+The 768-token token-policy diagnostic on spent calibration prompts completed
+GPU generation and James's blinded review; see the
 [final diagnostic report](../results/validation_v3_policy768/REPORT.md).
 Frontier achieved 7.69% relative suppression and generated-span worsened the
-unsafe count. Neither met the broad gate. This spent-data diagnostic does not
-replace the frozen development protocol or authorize confirmation.
+unsafe count. Neither met the broad gate.
 
-The teacher-forced screen steers all response-predictor positions simultaneously.
-It is a proxy, not an established equivalent of frontier-only generation.
-Screening/generation equivalence is the first investigation priority.
+The corrected frontier-exact train-only screen subsequently completed and was
+independently audited; see the [screen report](../results/validation_v3_frontier_exact/REPORT.md).
+It selected two distributed Ridge finalists by the prespecified sign/ranking
+rule. This does not establish behavioural suppression. The next fresh run needs
+its own source-isolated dataset and locked execution contract. The sealed
+confirmatory set and Control Tax remain unopened/unauthorized.

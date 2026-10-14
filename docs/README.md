@@ -8,6 +8,8 @@ Start with the document matching the task:
 | [`vast_ai_runbook.md`](vast_ai_runbook.md) | Provision, qualify, resume, and export the primary Vast.ai GPU workflow |
 | [`experiment_protocol.md`](experiment_protocol.md) | Predeclared dataset, fitting, intervention, and evaluation rules |
 | [`validation_v3_development.md`](validation_v3_development.md) | Distributed/adaptive governor funnel, phase locks, and exact run sequence |
+| [`validation_v3_fresh_development_protocol.md`](validation_v3_fresh_development_protocol.md) | Prospective fresh behavioural comparison, corpus gate, censoring rule and readiness checklist |
+| [`validation_v3_fresh_candidate_pool.md`](validation_v3_fresh_candidate_pool.md) | Pinned source files and unreviewed candidate pool for fresh-corpus human curation |
 | [`dataset_curation_workflow.md`](dataset_curation_workflow.md) | Source-to-freeze curation lifecycle and release checklist |
 | [`dataset_governance.md`](dataset_governance.md) | Storage, restricted-data, approval, and publication policy |
 | [`data_quality_remediation.md`](data_quality_remediation.md) | Historical rationale for replacing the pilot corpora |
