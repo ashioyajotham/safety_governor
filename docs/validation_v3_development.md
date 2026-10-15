@@ -30,22 +30,19 @@ confirmation passes.
 
 ## Intervention definition
 
-At each selected residual-pre hook and generation step, the governor applies
+At each selected residual-pre hook and generation step, the governor applies:
 
-```text
-h'_l = h_l - B w_l ||h_l||_2 g_l(h_l) v_l
-```
+$$
+h'_\ell = h_\ell - B\, w_\ell\, \|h_\ell\|_2\, g_\ell(h_\ell)\, v_\ell
+$$
 
-Each direction `v_l` has unit L2 norm, profile weights `w_l` sum to one, `B` is
-the total relative-L2 budget, and `g_l` is one for a static governor. This
-budgets the local injection at each site. It does not claim that nonlinear
-downstream state changes add linearly.
+Each direction $v_\ell$ has unit $L_2$ norm ($\|v_\ell\|_2 = 1$), profile weights $w_\ell$ sum to one ($\sum_\ell w_\ell = 1$), $B$ is the total relative-$L_2$ budget, and $g_\ell(h_\ell) = 1$ for a static governor. This budgets the local injection at each site. It does not claim that nonlinear downstream state changes add linearly.
 
 The optional adaptive gate is a clipped linear gate over signed projection:
 
-```text
-g_l(h_l) = clip((h_l dot v_l - threshold_l) / width_l, 0, 1)
-```
+$$
+g_\ell(h_\ell) = \operatorname{clip}\left(\frac{h_\ell \cdot v_\ell - \text{threshold}_\ell}{\text{width}_\ell},\, 0,\, 1\right)
+$$
 
 It is admitted only if train-only, source-group-bootstrap diagnostics have an
 AUC lower bound above 0.5 and unsafe-minus-safe direction is positive in every
